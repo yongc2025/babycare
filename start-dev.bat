@@ -2,7 +2,7 @@
 chcp 65001 >nul
 
 REM 设置 JDK 17 环境变量
-set JAVA_HOME=C:\Users\admin\.jdks\ms-17.0.15
+set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot
 set PATH=%JAVA_HOME%\bin;%PATH%
 
 REM 慧成长育儿平台 - Windows 开发环境启动脚本
@@ -94,7 +94,7 @@ echo ========================================
 echo 🎉 慧成长育儿平台开发环境启动完成！
 echo ========================================
 echo.
-echo 📱 前端应用: http://localhost:3000
+echo 📱 前端应用: http://localhost:3001
 echo 🔧 后端API: http://localhost:8080
 echo 📖 API文档: http://localhost:8080/swagger-ui.html
 echo 💾 数据库:  MySQL@localhost:3306
@@ -108,6 +108,6 @@ echo.
 
 REM 自动打开浏览器
 echo 正在打开浏览器...
-start http://localhost:3000
+start http://localhost:3001
 
 pause

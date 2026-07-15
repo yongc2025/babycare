@@ -61,3 +61,7 @@ mvnw.cmd
 *.jar
 *.war
 *.nar
+
+.history/
+
+docs/

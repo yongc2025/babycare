@@ -1,231 +1,101 @@
-# 慧成长（HuiGrowth）项目开发状态报告
+# 项目状态总览
 
-## 项目概览
+最近更新：2026-07-15
 
-**项目名称**：慧成长（HuiGrowth）- 智能化全家庭教育育儿平台  
-**版本**：v1.0.0  
-**开发时间**：2025年9月9日  
-**开发状态**：MVP版本基础架构完成  
+## 当前定位
 
-## ✅ 已完成功能
+BabyCare/HuiGrowth 当前代码基础更接近“家庭育儿记录 + 家庭协作”产品雏形，还不是完整的“托育 + 保育”机构运营产品。
 
-### 1. 项目基础架构 ✅
-- [x] 前端React应用（TypeScript + Vite + Ant Design）
-- [x] 后端Spring Boot应用（Java 17 + MySQL）
-- [x] 项目结构和配置文件完整设置
-- [x] 开发环境启动脚本
+后续开发目标是将系统逐步升级为真实可落地的托育保育系统，核心主线为：
 
-### 2. 数据库设计 ✅
-- [x] 核心实体模型设计（User、Family、Baby、GrowthRecord等）
-- [x] 完整的JPA实体类和Repository层
-- [x] 数据库表结构自动生成配置
-- [x] 索引和约束优化设计
-
-### 3. 用户认证系统 ✅
-- [x] JWT认证机制
-- [x] Spring Security安全配置
-- [x] 用户注册、登录、令牌刷新
-- [x] 密码加密和验证
-- [x] 完整的异常处理
-
-### 4. 前端基础框架 ✅
-- [x] React Router路由配置
-- [x] Zustand状态管理
-- [x] Axios HTTP客户端配置
-- [x] 统一的API响应处理
-- [x] 基础页面组件和布局
-
-### 5. API文档和监控 ✅
-- [x] Swagger API文档集成
-- [x] 健康检查接口
-- [x] 系统监控配置
-- [x] 跨域配置
-
-## 🚧 开发中功能（已设计未实现）
-
-### 1. 家庭管理功能
-- [ ] 创建和加入家庭
-- [ ] 家庭成员邀请和管理
-- [ ] 多宝宝管理
-- [ ] 家庭设置
-
-### 2. 成长记录功能
-- [ ] 智能相册上传和管理
-- [ ] 成长日记编写
-- [ ] 里程碑记录和庆祝
-- [ ] 媒体文件处理
-
-### 3. AI育儿助手
-- [ ] 智能问答系统
-- [ ] 发育测评工具
-- [ ] 个性化育儿建议
-- [ ] AI聊天接口集成
-
-### 4. 教育规划功能
-- [ ] 能力培养计划
-- [ ] 学习任务管理
-- [ ] 教育资源推荐
-- [ ] 进度跟踪
-
-### 5. 家庭协作功能
-- [ ] 家庭动态发布
-- [ ] 任务分配和管理
-- [ ] 专家咨询服务
-- [ ] 家庭内互动
-
-## 📊 技术架构总览
-
-### 前端技术栈
-```
-React 18.2.0
-├── TypeScript 5.0.2      # 类型安全
-├── Vite 4.4.5           # 构建工具
-├── Ant Design 5.8.6     # UI组件库
-├── React Router 6.15.0   # 路由管理
-├── Zustand 4.4.1        # 状态管理
-└── Axios 1.5.0          # HTTP客户端
+```text
+机构 -> 班级 -> 宝宝 -> 考勤 -> 保育记录 -> 日报 -> 家长同步 -> 机构数据沉淀
 ```
 
-### 后端技术栈
-```
-Spring Boot 3.2.0
-├── Spring Security       # 安全认证
-├── Spring Data JPA      # 数据访问
-├── MySQL 8.0            # 主数据库
-├── JWT 0.11.5           # 令牌认证
-└── Swagger 3            # API文档
-```
+## 当前技术栈
 
-## 🏗️ 项目结构
+- 前端：React 18、TypeScript、Vite、Ant Design、Zustand、Axios
+- 后端：Spring Boot 3.2、Java 17、Spring Security、JWT、Spring Data JPA、MySQL
+- 文档入口：`docs/AGENT_WORKFLOW.md`
+- 任务清单：`docs/DEVELOPMENT_TASKS.md`
+- 产品蓝图：`docs/托育保育产品规划.md`
 
-```
-BabyCare/
-├── frontend/                 # 前端React应用
-│   ├── src/
-│   │   ├── components/       # ✅ 通用组件
-│   │   ├── pages/           # ✅ 页面组件
-│   │   ├── stores/          # ✅ 状态管理
-│   │   ├── services/        # ✅ API服务
-│   │   ├── types/           # ✅ TypeScript类型
-│   │   └── utils/           # ✅ 工具函数
-│   └── package.json         # ✅ 依赖配置
-├── backend/                  # 后端Spring Boot应用
-│   ├── src/main/java/
-│   │   └── com/huigrowth/babycare/
-│   │       ├── controller/   # ✅ 控制器层
-│   │       ├── service/      # ✅ 业务逻辑层
-│   │       ├── repository/   # ✅ 数据访问层
-│   │       ├── entity/       # ✅ 实体类
-│   │       ├── dto/          # ✅ 数据传输对象
-│   │       ├── config/       # ✅ 配置类
-│   │       ├── security/     # ✅ 安全配置
-│   │       └── util/         # ✅ 工具类
-│   └── pom.xml              # ✅ Maven配置
-├── docs/                     # 📚 项目文档
-├── start-dev.bat            # ✅ Windows启动脚本
-├── start-dev.sh             # ✅ Linux/Mac启动脚本
-└── README.md                # ✅ 项目说明文档
-```
+## 已有能力
 
-## 🚀 快速启动
+| 模块 | 状态 | 说明 |
+|---|---|---|
+| 用户认证 | 可用雏形 | 注册、登录、JWT、用户信息 |
+| 家庭管理 | 半成品 | 后端有接口，前端有页面，仍需统一状态层 |
+| 宝宝管理 | 半成品 | 当前归属于家庭，后续需支持入托和班级归属 |
+| 成长记录 | 半成品 | 有真实接口，但前端存在 mock fallback |
+| 教育计划 | 半成品 | 有计划接口，活动和统计仍不完整 |
+| 家庭协作 | 半成品 | 动态、任务有接口，评论等能力不完整 |
+| AI 育儿 | Demo | 前端主要是本地模拟回复，未真正接后端会话 |
+| Dashboard | Demo | 多数统计与列表为静态数据 |
+| 个人资料 | Demo | 占位页面，未实现完整编辑 |
 
-### Windows环境
-```bash
-# 直接运行启动脚本
-start-dev.bat
-```
+## 主要差距
 
-### Linux/Mac环境
-```bash
-# 给脚本执行权限
-chmod +x start-dev.sh
+- 缺少机构、园区、班级、员工、老师、保育员等核心对象。
+- 缺少宝宝入托档案、班级归属、接送授权等托育基础资料。
+- 缺少到园、离园、请假、缺勤等考勤接送流程。
+- 缺少晨检、喂养、睡眠、排便、体温、情绪等每日保育记录。
+- 缺少家长每日托育报告。
+- 缺少用药、异常事件、事故上报等安全合规模块。
+- 缺少收费、账单、合同、托位、员工排班等机构运营能力。
+- 前端 demo/mock 数据较多，需要逐步替换为真实 API。
 
-# 运行启动脚本
-./start-dev.sh
-```
+## 当前风险
 
-### 手动启动
-```bash
-# 1. 启动后端
-cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+- 文档和部分源码注释曾出现编码乱码，需要后续逐步清理。
+- 前端构建曾因 TypeScript 严格检查失败，需要优先稳定。
+- 当前开发环境曾缺少可用 Maven 命令，后端编译验证可能受限。
+- `application.properties` 和 `application-dev.properties` 中存在明文数据库密码和 JWT secret，后续应迁移到环境变量。
+- `familyStore.ts` 仍有旧接口路径和 TODO，需要优先统一。
 
-# 2. 启动前端（新终端）
-cd frontend
-npm install
-npm run dev
-```
+## 下一阶段目标
 
-## 📱 访问地址
+第一阶段目标：建立托育产品主链最小闭环。
 
-- **前端应用**：http://localhost:3000
-- **后端API**：http://localhost:8080
-- **API文档**：http://localhost:8080/swagger-ui.html
-- **健康检查**：http://localhost:8080/api/public/health
+优先级顺序：
 
-## 🧪 当前可测试功能
+1. 建立长期开发文档体系和执行规范。已完成，见 `docs/AGENT_WORKFLOW.md`。
+2. 稳定现有前后端构建和启动验证。
+3. 清理前端 demo/mock fallback，明确真实接口失败。
+4. 新增机构、班级、员工基础模型和接口。
+5. 改造宝宝管理，支持入托档案和班级归属。
+6. 新增考勤接送模块。
+7. 新增每日保育记录模块。
+8. 新增家长托育日报模块。
 
-### 1. 用户认证
-- ✅ 用户注册：POST `/api/auth/register`
-- ✅ 用户登录：POST `/api/auth/login`
-- ✅ 获取用户信息：GET `/api/auth/me`
-- ✅ 更新用户资料：PUT `/api/auth/profile`
-- ✅ 修改密码：PUT `/api/auth/change-password`
+## 当前迭代
 
-### 2. 系统监控
-- ✅ 健康检查：GET `/api/public/health`
-- ✅ 系统信息：GET `/api/public/info`
+当前任务：`T001 前端构建错误清理`
 
-### 3. 前端页面
-- ✅ 登录页面：/login
-- ✅ 注册页面：/register
-- ✅ 仪表板：/dashboard
-- ✅ 主要功能页面占位符
+任务来源：`docs/DEVELOPMENT_TASKS.md`
 
-## 💡 下一步开发计划
+目标：先让前端 `npm run build` 通过，恢复项目的基础可验证状态。
 
-### 第二阶段（预计2周）
-1. **家庭管理功能实现**
-   - 家庭创建和加入
-   - 成员邀请机制
-   - 多宝宝管理界面
+## UI/UX 审计状态
 
-2. **文件上传功能**
-   - 图片/视频上传
-   - 文件存储服务
-   - 缩略图生成
+启动正式功能开发前，已完成一次前端样式审计，详见：
 
-### 第三阶段（预计3周）
-1. **成长记录功能**
-   - 相册管理
-   - 日记编写
-   - 里程碑记录
+- `docs/UI_STYLE_AUDIT.md`
 
-2. **基础AI功能**
-   - 简单问答
-   - 发育评估
+结论：
 
-### 第四阶段（预计2周）
-1. **系统优化和测试**
-   - 性能优化
-   - 单元测试
-   - 集成测试
+- 当前系统视觉偏 demo/template，不符合成熟托育 + 保育系统定位。
+- 登录页、注册页、主布局、Dashboard 需要优先重构。
+- 后续 UI 改造应先建立设计系统 token，再重构登录/注册页，随后重构主布局。
+- 截图级验证需在前端构建和本地服务稳定后补充。
 
-## 🔧 开发环境要求
+## 状态维护规则
 
-- **Node.js** 18.0+
-- **Java** 17+
-- **Maven** 3.8+
-- **MySQL** 8.0+
+每完成一个开发任务，必须更新：
 
-## 📞 技术支持
-
-如有任何技术问题，请查看：
-1. 项目README文档
-2. API文档（Swagger）
-3. 日志文件：`logs/backend.log`, `logs/frontend.log`
-
----
-
-**项目当前状态**：✅ MVP基础架构完成，可运行和测试基础功能  
-**下一个里程碑**：🚧 家庭管理和成长记录功能实现
+- `docs/PROJECT_STATUS.md`
+- `docs/DEVELOPMENT_TASKS.md`
+- 如涉及数据模型，更新 `docs/DATA_MODEL.md`
+- 如涉及 API，更新 `docs/API_DESIGN.md`
+- 如涉及规范变更，更新 `docs/CODING_STANDARDS.md`
+- 重要变更记录到 `docs/CHANGELOG.md`
