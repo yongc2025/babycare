@@ -1,407 +1,238 @@
-import React, { useState, useEffect } from 'react'
-import { 
-  Card, 
-  Button, 
-  Form, 
-  Input, 
-  Modal, 
-  message, 
-  List, 
-  Avatar, 
-  Tag, 
-  Divider,
-  Space,
-  Typography 
-} from 'antd'
-import { 
-  PlusOutlined, 
-  UserAddOutlined, 
-  TeamOutlined, 
-  UsergroupAddOutlined,
-  CopyOutlined 
+import React, { useEffect, useState } from 'react'
+import { Alert, Button, Card, DatePicker, Empty, Form, Input, List, Modal, Select, Space, Tag, Typography, message } from 'antd'
+import {
+  HomeOutlined,
+  PlusOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
-import { request } from '../../services/api'
+import { useFamilyStore } from '../../stores/familyStore'
 
-const { Title, Text } = Typography
-
-interface Family {
-  id: number
-  name: string
-  description: string
-  inviteCode: string
-  memberCount: number
-  babyCount: number
-  members: FamilyMember[]
-  babies: Baby[]
-}
-
-interface FamilyMember {
-  id: number
-  username: string
-  nickname: string
-  avatar?: string
-  role: 'CREATOR' | 'PARENT' | 'GRANDPARENT' | 'RELATIVE'
-}
-
-interface Baby {
-  id: number
-  name: string
-  gender: 'MALE' | 'FEMALE'
-  birthday: string
-  avatar?: string
-  ageDescription: string
-}
+const { Title, Paragraph, Text } = Typography
 
 const FamilyManagement: React.FC = () => {
-  const [families, setFamilies] = useState<Family[]>([])
-  const [loading, setLoading] = useState(false)
-  const [createModalVisible, setCreateModalVisible] = useState(false)
-  const [joinModalVisible, setJoinModalVisible] = useState(false)
-  const [addBabyModalVisible, setAddBabyModalVisible] = useState(false)
-  const [selectedFamilyId, setSelectedFamilyId] = useState<number>()
-  const [createForm] = Form.useForm()
+  const {
+    families,
+    currentFamily,
+    currentBaby,
+    isLoading,
+    error,
+    loadFamilies,
+    createFamily,
+    joinFamily,
+    addBaby,
+    switchFamily,
+    switchBaby,
+  } = useFamilyStore()
+  const [familyModalOpen, setFamilyModalOpen] = useState(false)
+  const [joinModalOpen, setJoinModalOpen] = useState(false)
+  const [babyModalOpen, setBabyModalOpen] = useState(false)
+  const [familyForm] = Form.useForm()
   const [joinForm] = Form.useForm()
   const [babyForm] = Form.useForm()
 
   useEffect(() => {
-    loadFamilies()
-  }, [])
+    loadFamilies().catch(() => {
+      // Error is kept in the store and displayed below.
+    })
+  }, [loadFamilies])
 
-  const loadFamilies = async () => {
-    setLoading(true)
-    try {
-      const response = await request.get('/family/my-families')
-      setFamilies(response.data || [])
-    } catch (error) {
-      message.error('加载家庭列表失败')
-    } finally {
-      setLoading(false)
-    }
+  const handleCreateFamily = async () => {
+    const values = await familyForm.validateFields()
+    await createFamily(values)
+    message.success('家庭创建成功')
+    familyForm.resetFields()
+    setFamilyModalOpen(false)
   }
 
-  const handleCreateFamily = async (values: any) => {
-    try {
-      await request.post('/family/create', values)
-      message.success('家庭创建成功！')
-      setCreateModalVisible(false)
-      createForm.resetFields()
-      loadFamilies()
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '创建失败')
-    }
+  const handleJoinFamily = async () => {
+    const values = await joinForm.validateFields()
+    await joinFamily(values.inviteCode)
+    message.success('已加入家庭')
+    joinForm.resetFields()
+    setJoinModalOpen(false)
   }
 
-  const handleJoinFamily = async (values: any) => {
-    try {
-      await request.post(`/family/join/${values.inviteCode}`)
-      message.success('成功加入家庭！')
-      setJoinModalVisible(false)
-      joinForm.resetFields()
-      loadFamilies()
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '加入失败')
-    }
-  }
-
-  const handleAddBaby = async (values: any) => {
-    if (!selectedFamilyId) return
-    
-    try {
-      await request.post(`/family/${selectedFamilyId}/babies`, values)
-      message.success('宝宝添加成功！')
-      setAddBabyModalVisible(false)
-      babyForm.resetFields()
-      setSelectedFamilyId(undefined)
-      loadFamilies()
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '添加失败')
-    }
-  }
-
-  const copyInviteCode = (inviteCode: string) => {
-    navigator.clipboard.writeText(inviteCode)
-    message.success('邀请码已复制到剪贴板')
-  }
-
-  const getRoleTag = (role: string) => {
-    const roleMap = {
-      'CREATOR': { color: 'gold', text: '创建者' },
-      'PARENT': { color: 'blue', text: '家长' },
-      'GRANDPARENT': { color: 'green', text: '祖父母' },
-      'RELATIVE': { color: 'purple', text: '亲属' }
-    }
-    const config = roleMap[role as keyof typeof roleMap] || { color: 'default', text: role }
-    return <Tag color={config.color}>{config.text}</Tag>
-  }
-
-  const getGenderIcon = (gender: string) => {
-    return gender === 'MALE' ? '👦' : '👧'
+  const handleAddBaby = async () => {
+    const values = await babyForm.validateFields()
+    await addBaby({
+      name: values.name,
+      gender: values.gender,
+      birthday: values.birthday.format('YYYY-MM-DD'),
+      avatar: values.avatar,
+    })
+    message.success('宝宝添加成功')
+    babyForm.resetFields()
+    setBabyModalOpen(false)
   }
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={3}>
-          <TeamOutlined /> 家庭管理
+    <div>
+      <Space direction="vertical" size={4} style={{ marginBottom: 20 }}>
+        <Title level={2} style={{ margin: 0 }}>
+          家庭与宝宝管理
         </Title>
-        <Space>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => setCreateModalVisible(true)}
-          >
-            创建家庭
-          </Button>
-          <Button 
-            icon={<UserAddOutlined />}
-            onClick={() => setJoinModalVisible(true)}
-          >
-            加入家庭
-          </Button>
-        </Space>
+        <Paragraph type="secondary" style={{ margin: 0 }}>
+          当前使用真实家庭与宝宝接口；后续会升级为机构、班级、入托档案和家长关系管理。
+        </Paragraph>
+      </Space>
+
+      {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(280px, 0.7fr)', gap: 16 }}>
+        <Card
+          title="家庭列表"
+          extra={
+            <Space>
+              <Button icon={<UserAddOutlined />} onClick={() => setJoinModalOpen(true)}>
+                加入家庭
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setFamilyModalOpen(true)}>
+                创建家庭
+              </Button>
+            </Space>
+          }
+        >
+          <List
+            loading={isLoading}
+            dataSource={families}
+            locale={{
+              emptyText: <Empty description="暂无家庭，请先创建或通过邀请码加入家庭" />,
+            }}
+            renderItem={(family) => (
+              <List.Item
+                actions={[
+                  <Button key="switch" type="link" onClick={() => switchFamily(family.id)}>
+                    设为当前
+                  </Button>,
+                ]}
+              >
+                <List.Item.Meta
+                  avatar={<HomeOutlined style={{ color: 'var(--primary-color)', fontSize: 20 }} />}
+                  title={
+                    <Space>
+                      {family.name}
+                      {currentFamily?.id === family.id && <Tag color="green">当前</Tag>}
+                    </Space>
+                  }
+                  description={`邀请码：${family.inviteCode || '暂无'} · 宝宝 ${family.babies.length} 名 · 成员 ${family.members.length} 名`}
+                />
+              </List.Item>
+            )}
+          />
+        </Card>
+
+        <Card
+          title="当前宝宝"
+          extra={
+            <Button type="primary" icon={<PlusOutlined />} disabled={!currentFamily} onClick={() => setBabyModalOpen(true)}>
+              添加宝宝
+            </Button>
+          }
+        >
+          {!currentFamily && <Empty description="请先选择家庭" />}
+
+          {currentFamily && (
+            <List
+              dataSource={currentFamily.babies}
+              locale={{
+                emptyText: <Empty description="当前家庭暂无宝宝" />,
+              }}
+              renderItem={(baby) => (
+                <List.Item
+                  actions={[
+                    <Button key="switchBaby" type="link" onClick={() => switchBaby(baby.id)}>
+                      设为当前
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<UserOutlined style={{ color: 'var(--primary-color)', fontSize: 20 }} />}
+                    title={
+                      <Space>
+                        {baby.name}
+                        {currentBaby?.id === baby.id && <Tag color="green">当前</Tag>}
+                      </Space>
+                    }
+                    description={`${baby.gender === 'MALE' ? '男宝宝' : '女宝宝'} · ${baby.birthday}`}
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+        </Card>
       </div>
 
-      <List
-        loading={loading}
-        grid={{ gutter: 16, column: 2 }}
-        dataSource={families}
-        renderItem={(family) => (
-          <List.Item>
-            <Card
-              title={
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{family.name}</span>
-                  <Space>
-                    <Text type="secondary">邀请码: {family.inviteCode}</Text>
-                    <Button 
-                      size="small" 
-                      icon={<CopyOutlined />}
-                      onClick={() => copyInviteCode(family.inviteCode)}
-                    />
-                  </Space>
-                </div>
-              }
-              extra={
-                <Button 
-                  type="primary" 
-                  size="small"
-                  icon={<UsergroupAddOutlined />}
-                  onClick={() => {
-                    setSelectedFamilyId(family.id)
-                    setAddBabyModalVisible(true)
-                  }}
-                >
-                  添加宝宝
-                </Button>
-              }
-            >
-              {family.description && (
-                <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
-                  {family.description}
-                </Text>
-              )}
-              
-              <div style={{ marginBottom: '16px' }}>
-                <Title level={5}>家庭成员 ({family.memberCount})</Title>
-                <List
-                  size="small"
-                  dataSource={family.members}
-                  renderItem={(member) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Avatar src={member.avatar}>{member.nickname?.[0]}</Avatar>}
-                        title={
-                          <Space>
-                            {member.nickname}
-                            {getRoleTag(member.role)}
-                          </Space>
-                        }
-                        description={`@${member.username}`}
-                      />
-                    </List.Item>
-                  )}
-                />
-              </div>
+      <Card title="下一阶段边界" style={{ marginTop: 16 }}>
+        <Space direction="vertical" size={12}>
+          <Text>
+            <TeamOutlined /> 家庭关系会继续保留，用于家长和监护人关系。
+          </Text>
+          <Text>
+            <HomeOutlined /> 托育产品主链会新增机构、班级、员工和入托档案，不直接用家庭替代机构。
+          </Text>
+        </Space>
+      </Card>
 
-              {family.babies.length > 0 && (
-                <div>
-                  <Title level={5}>宝宝们 ({family.babyCount})</Title>
-                  <List
-                    size="small"
-                    dataSource={family.babies}
-                    renderItem={(baby) => (
-                      <List.Item>
-                        <List.Item.Meta
-                          avatar={<Avatar src={baby.avatar}>{getGenderIcon(baby.gender)}</Avatar>}
-                          title={baby.name}
-                          description={baby.ageDescription}
-                        />
-                      </List.Item>
-                    )}
-                  />
-                </div>
-              )}
-            </Card>
-          </List.Item>
-        )}
-      />
-
-      {/* 创建家庭Modal */}
       <Modal
         title="创建家庭"
-        open={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
-        footer={null}
+        open={familyModalOpen}
+        onOk={handleCreateFamily}
+        onCancel={() => setFamilyModalOpen(false)}
+        confirmLoading={isLoading}
+        destroyOnClose
       >
-        <Form
-          form={createForm}
-          layout="vertical"
-          onFinish={handleCreateFamily}
-        >
-          <Form.Item
-            label="家庭名称"
-            name="name"
-            rules={[
-              { required: true, message: '请输入家庭名称' },
-              { min: 2, max: 50, message: '家庭名称长度必须在2-50个字符之间' }
-            ]}
-          >
-            <Input placeholder="请输入家庭名称" />
+        <Form form={familyForm} layout="vertical">
+          <Form.Item name="name" label="家庭名称" rules={[{ required: true, message: '请输入家庭名称' }]}>
+            <Input placeholder="例如：小树家庭" />
           </Form.Item>
-          
-          <Form.Item
-            label="家庭描述"
-            name="description"
-            rules={[
-              { max: 200, message: '家庭描述长度不能超过200个字符' }
-            ]}
-          >
-            <Input.TextArea rows={3} placeholder="请输入家庭描述（可选）" />
-          </Form.Item>
-
-          <Form.Item>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => setCreateModalVisible(false)}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit">
-                创建
-              </Button>
-            </Space>
+          <Form.Item name="description" label="家庭描述">
+            <Input.TextArea placeholder="可选" rows={3} />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* 加入家庭Modal */}
       <Modal
         title="加入家庭"
-        open={joinModalVisible}
-        onCancel={() => setJoinModalVisible(false)}
-        footer={null}
+        open={joinModalOpen}
+        onOk={handleJoinFamily}
+        onCancel={() => setJoinModalOpen(false)}
+        confirmLoading={isLoading}
+        destroyOnClose
       >
-        <Form
-          form={joinForm}
-          layout="vertical"
-          onFinish={handleJoinFamily}
-        >
-          <Form.Item
-            label="邀请码"
-            name="inviteCode"
-            rules={[
-              { required: true, message: '请输入邀请码' },
-              { len: 6, message: '邀请码长度为6位' }
-            ]}
-          >
-            <Input 
-              placeholder="请输入6位邀请码" 
-              style={{ textTransform: 'uppercase' }}
-              maxLength={6}
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}
->
-              <Button onClick={() => setJoinModalVisible(false)}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit">
-                加入
-              </Button>
-            </Space>
+        <Form form={joinForm} layout="vertical">
+          <Form.Item name="inviteCode" label="邀请码" rules={[{ required: true, message: '请输入邀请码' }]}>
+            <Input placeholder="请输入 6 位家庭邀请码" />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* 添加宝宝Modal */}
       <Modal
         title="添加宝宝"
-        open={addBabyModalVisible}
-        onCancel={() => {
-          setAddBabyModalVisible(false)
-          setSelectedFamilyId(undefined)
-        }}
-        footer={null}
+        open={babyModalOpen}
+        onOk={handleAddBaby}
+        onCancel={() => setBabyModalOpen(false)}
+        confirmLoading={isLoading}
+        destroyOnClose
       >
-        <Form
-          form={babyForm}
-          layout="vertical"
-          onFinish={handleAddBaby}
-        >
-          <Form.Item
-            label="宝宝姓名"
-            name="name"
-            rules={[
-              { required: true, message: '请输入宝宝姓名' },
-              { min: 1, max: 20, message: '宝宝姓名长度必须在1-20个字符之间' }
-            ]}
-          >
+        <Form form={babyForm} layout="vertical">
+          <Form.Item name="name" label="宝宝姓名" rules={[{ required: true, message: '请输入宝宝姓名' }]}>
             <Input placeholder="请输入宝宝姓名" />
           </Form.Item>
-
-          <Form.Item
-            label="性别"
-            name="gender"
-            rules={[{ required: true, message: '请选择宝宝性别' }]}
-          >
-            <Input.Group>
-              <Button.Group>
-                <Button 
-                  type="default"
-                  onClick={() => babyForm.setFieldsValue({ gender: 'MALE' })}
-                >
-                  👦 男孩
-                </Button>
-                <Button 
-                  type="default"
-                  onClick={() => babyForm.setFieldsValue({ gender: 'FEMALE' })}
-                >
-                  👧 女孩
-                </Button>
-              </Button.Group>
-            </Input.Group>
+          <Form.Item name="gender" label="性别" rules={[{ required: true, message: '请选择性别' }]}>
+            <Select
+              options={[
+                { label: '男宝宝', value: 'MALE' },
+                { label: '女宝宝', value: 'FEMALE' },
+              ]}
+            />
           </Form.Item>
-          
-          <Form.Item
-            label="生日"
-            name="birthday"
-            rules={[{ required: true, message: '请选择宝宝生日' }]}
-          >
-            <Input type="date" />
+          <Form.Item name="birthday" label="生日" rules={[{ required: true, message: '请选择生日' }]}>
+            <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-
-          <Form.Item>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => {
-                setAddBabyModalVisible(false)
-                setSelectedFamilyId(undefined)
-              }}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit">
-                添加
-              </Button>
-            </Space>
+          <Form.Item name="avatar" label="头像地址">
+            <Input placeholder="可选，后续会接入文件上传" />
           </Form.Item>
         </Form>
       </Modal>

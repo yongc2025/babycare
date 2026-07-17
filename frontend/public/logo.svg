@@ -1,9 +1,63 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">  <circle cx="100" cy="100" r="95" fill="#667eea" opacity="0.1"/>  <g transform="translate(100,105)">    <path d="M0 30 C0 30 -5 15 0 0 C5 15 0 30 0 30Z" fill="#52c41a" opacity="0.6"/>    <path d="M0 15 C-15 5 -25 -10 -15 -20 C-5 -15 0 0 0 15Z" fill="#52c41a"/>    <path d="M0 10 C12 0 22 -12 14 -20 C6 -15 0 -2 0 10Z" fill="#73d13d"/>
-  </g>  <g transform="translate(85,58)">
-    <path d="M0 8 C-3 3 -8 0 -10 -3 C-14 -8 -10 -15 -5 -15 C-1 -15 0 -11 0 -11 C0 -11 1 -15 5 -15 C10 -15 14 -8 10 -3 C8 0 3 3 0 8Z" fill="#ff4d4f" opacity="0.8"/>
-  </g>  <g transform="translate(130,50)">
-    <polygon points="0,-12 3,-4 12,-4 5,2 7,10 0,6 -7,10 -5,2 -12,-4 -3,-4" fill="#faad14" opacity="0.9"/>
-  </g>  <g transform="translate(60,45)">
-    <polygon points="0,-7 2,-2.5 6,-2.5 3,0.5 4,5 0,2.5 -4,5 -3,0.5 -6,-2.5 -2,-2.5" fill="#faad14" opacity="0.6"/>
-  </g>  <path d="M30 170 Q100 190 170 170" stroke="#667eea" stroke-width="2" fill="none" opacity="0.3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="好芽儿托育保育平台图标">
+  <defs>
+    <linearGradient id="pink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9bb3"/>
+      <stop offset="1" stop-color="#ef7f9b"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#87c9f3"/>
+      <stop offset="1" stop-color="#57a8df"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dd28b"/>
+      <stop offset="1" stop-color="#4fc49c"/>
+    </linearGradient>
+    <radialGradient id="skin" cx="48%" cy="36%" r="70%">
+      <stop offset="0" stop-color="#fff0e5"/>
+      <stop offset="1" stop-color="#ffd2b4"/>
+    </radialGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d39567"/>
+      <stop offset="1" stop-color="#a9663f"/>
+    </linearGradient>
+    <linearGradient id="yellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd872"/>
+      <stop offset="1" stop-color="#f8c443"/>
+    </linearGradient>
+    <linearGradient id="mouth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff93a7"/>
+      <stop offset="1" stop-color="#ef6e87"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M501 337 C454 274 393 250 326 267 C238 289 191 367 202 454 C205 481 214 507 229 529 C233 536 241 533 239 525 C224 454 245 389 300 350 C353 312 430 314 493 348 C505 354 510 348 501 337 Z" fill="url(#pink)"/>
+  <path d="M523 337 C570 274 631 250 698 267 C786 289 833 367 822 454 C819 481 810 507 795 529 C791 536 783 533 785 525 C800 454 779 389 724 350 C671 312 594 314 531 348 C519 354 514 348 523 337 Z" fill="url(#blue)"/>
+
+  <path d="M219 516 C198 505 184 521 188 548 C208 679 303 789 477 837 C491 841 501 837 501 823 C500 752 478 697 437 656 C405 624 353 580 316 567 C297 560 283 574 292 592 C307 622 331 649 364 671 C371 676 374 686 367 691 C361 695 354 692 348 688 C304 658 267 619 245 574 C240 564 226 526 219 516 Z" fill="url(#pink)"/>
+  <path d="M805 516 C826 505 840 521 836 548 C816 679 721 789 547 837 C533 841 523 837 523 823 C524 752 546 697 587 656 C619 624 671 580 708 567 C727 560 741 574 732 592 C717 622 693 649 660 671 C653 676 650 686 657 691 C663 695 670 692 676 688 C720 658 757 619 779 574 C784 564 798 526 805 516 Z" fill="url(#blue)"/>
+
+  <path d="M512 337 C510 295 516 252 543 218" fill="none" stroke="url(#green)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M511 337 C510 296 501 257 478 234" fill="none" stroke="url(#green)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M543 218 C562 162 617 127 675 134 C681 135 684 140 683 147 C677 210 638 250 571 251 C557 251 548 246 543 238 C540 233 540 226 543 218 Z" fill="url(#green)"/>
+  <path d="M548 229 C577 190 611 167 649 152" fill="none" stroke="#ecfff5" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+  <path d="M478 234 C456 193 420 174 381 181 C376 182 373 186 374 191 C380 230 408 252 450 250 C463 249 473 244 478 234 Z" fill="url(#green)"/>
+
+  <path d="M402 615 C441 592 474 582 512 582 C550 582 583 592 622 615 C590 635 557 666 537 710 C525 736 517 762 512 783 C507 762 499 736 487 710 C467 666 434 635 402 615 Z" fill="url(#yellow)"/>
+
+  <ellipse cx="363" cy="535" rx="30" ry="37" fill="#ffc9a5"/>
+  <ellipse cx="661" cy="535" rx="30" ry="37" fill="#ffc9a5"/>
+
+  <ellipse cx="512" cy="515" rx="143" ry="142" fill="url(#skin)"/>
+
+  <path d="M370 507 C365 423 423 359 510 359 C594 359 656 420 655 500 C648 449 625 408 588 385 C596 407 608 420 626 428 C607 442 574 436 552 413 C557 431 570 445 586 452 C557 465 518 448 493 416 C495 439 510 457 530 469 C502 482 459 460 437 428 C409 447 385 473 370 507 Z" fill="url(#hair)"/>
+
+  <path d="M430 520 C438 505 454 504 464 517" fill="none" stroke="#7a4a2c" stroke-width="9" stroke-linecap="round"/>
+  <path d="M560 517 C570 504 586 505 594 520" fill="none" stroke="#7a4a2c" stroke-width="9" stroke-linecap="round"/>
+
+  <ellipse cx="405" cy="555" rx="25" ry="22" fill="#f8a6a8" opacity=".8"/>
+  <ellipse cx="619" cy="555" rx="25" ry="22" fill="#f8a6a8" opacity=".8"/>
+
+  <path d="M477 541 C489 538 501 537 512 537 C523 537 535 538 547 541 C547 566 533 579 512 579 C491 579 477 566 477 541 Z" fill="url(#mouth)"/>
+
+  <path d="M512 700 C505 690 487 689 481 702 C474 717 492 730 512 745 C532 730 550 717 543 702 C537 689 519 690 512 700 Z" fill="#fff"/>
 </svg>

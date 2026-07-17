@@ -1,0 +1,38 @@
+.daily-report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.daily-report-page .page-title h2.ant-typography,
+.daily-report-page .page-title .ant-typography {
+  margin: 0;
+}
+
+.report-select {
+  min-width: 220px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.active-report-row {
+  background: var(--accent-color);
+}
+
+.report-status {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-select {
+    width: 100%;
+  }
+}

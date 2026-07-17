@@ -33,7 +33,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns(parseAllowedOrigins())
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
@@ -65,8 +65,7 @@ public class WebConfig implements WebMvcConfigurer {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // 允许的源
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOriginPatterns(origins);
+        configuration.setAllowedOriginPatterns(Arrays.asList(parseAllowedOrigins()));
         
         // 允许的方法
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -84,5 +83,12 @@ public class WebConfig implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", configuration);
         
         return source;
+    }
+
+    private String[] parseAllowedOrigins() {
+        return Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toArray(String[]::new);
     }
 }

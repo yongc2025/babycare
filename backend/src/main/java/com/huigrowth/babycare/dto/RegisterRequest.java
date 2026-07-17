@@ -26,9 +26,12 @@ public class RegisterRequest {
     @Size(min = 6, message = "密码长度至少6位")
     private String password;
 
+    @Pattern(regexp = "^$|^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
+    @Size(max = 10, message = "昵称不能超过10个字符")
     private String nickname;
 
+    @Size(max = 50, message = "城市不能超过50个字符")
     private String city;
 }

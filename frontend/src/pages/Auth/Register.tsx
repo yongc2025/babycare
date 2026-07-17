@@ -59,7 +59,7 @@ const Register: React.FC = () => {
       })
       
       // 注册成功后显示提示并跳转
-      message.success('注册成功！欢迎加入慧成长！')
+      message.success('注册成功！欢迎加入好芽儿！')
       setTimeout(() => {
         navigate('/dashboard')
       }, 1500)
@@ -73,12 +73,12 @@ const Register: React.FC = () => {
     <div className="auth-container">
       <div className="auth-content">
         <div className="auth-header">
-          <img src="/logo.svg" alt="慧成长" className="auth-logo" />
+          <img src="/brand-lockup.svg" alt="好芽儿托育保育机构管理系统" className="register-brand-lockup" />
           <Title level={2} className="auth-title">
-            加入慧成长
+            创建机构账号
           </Title>
           <Text type="secondary" className="auth-subtitle">
-            开启您的智能育儿之旅
+            开启托育保育数字化工作台
           </Text>
         </div>
 
@@ -185,7 +185,7 @@ const Register: React.FC = () => {
 
         <div className="auth-footer">
           <Text type="secondary" className="footer-text">
-            © 2025 慧成长. All rights reserved.
+            © 2026 好芽儿. All rights reserved.
           </Text>
         </div>
       </div>

@@ -1,41 +1,35 @@
 :root {
-  /* 主色调 */
-  --primary-color: #FF6B35;
-  --primary-color-hover: #ff5722;
-  --primary-color-active: #e64a19;
-  
-  /* 辅助色 */
-  --secondary-color: #4ECDC4;
-  --accent-color: #FFE5E5;
-  
-  /* 中性色 */
-  --text-color: #333333;
-  --text-color-secondary: #666666;
-  --text-color-tertiary: #999999;
-  --border-color: #e8e8e8;
-  --background-color: #F8F8F8;
-  
-  /* 功能色 */
-  --success-color: #52C41A;
-  --warning-color: #FAAD14;
-  --error-color: #FF4D4F;
-  
-  /* 字体 */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  
-  /* 阴影 */
-  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --box-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
-  
-  /* 边框圆角 */
-  --border-radius: 8px;
-  --border-radius-small: 4px;
-  --border-radius-large: 12px;
+  --primary-color: #2f6f63;
+  --primary-color-hover: #285f55;
+  --primary-color-active: #214f47;
+  --secondary-color: #c47a2c;
+  --accent-color: #edf6f3;
+  --accent-strong: #d7ebe5;
+  --surface-color: #ffffff;
+  --surface-muted: #f5f7f4;
+  --surface-subtle: #fbfcfa;
+  --sidebar-bg: #263f3a;
+  --sidebar-bg-hover: #31534c;
+  --sidebar-selected: #f4c36f;
+  --text-color: #1e2b28;
+  --text-color-secondary: #687772;
+  --text-color-tertiary: #98a5a0;
+  --border-color: #dde5df;
+  --success-color: #2f8a57;
+  --warning-color: #d18a22;
+  --error-color: #c94848;
+  --info-color: #3c63b8;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --shadow-sm: 0 1px 2px rgba(30, 43, 40, 0.06);
+  --shadow-md: 0 12px 28px rgba(30, 43, 40, 0.08);
+  --shadow-lg: 0 20px 50px rgba(30, 43, 40, 0.12);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -45,121 +39,102 @@ html {
 }
 
 body {
+  margin: 0;
   font-family: var(--font-family);
   color: var(--text-color);
-  background-color: var(--background-color);
+  background:
+    linear-gradient(180deg, rgba(237, 246, 243, 0.82), rgba(245, 247, 244, 0.86)),
+    var(--surface-muted);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 自定义 Ant Design 主题 */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary-color-hover);
+}
+
 .ant-btn-primary {
   background: var(--primary-color);
   border-color: var(--primary-color);
+  box-shadow: none;
 }
 
 .ant-btn-primary:hover,
 .ant-btn-primary:focus {
-  background: var(--primary-color-hover);
-  border-color: var(--primary-color-hover);
+  background: var(--primary-color-hover) !important;
+  border-color: var(--primary-color-hover) !important;
 }
 
-.ant-btn-primary:active {
-  background: var(--primary-color-active);
-  border-color: var(--primary-color-active);
+.ant-card {
+  border-color: rgba(221, 229, 223, 0.92);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 滚动条样式 */
+.ant-card-head {
+  min-height: 48px;
+  border-bottom-color: var(--border-color);
+}
+
+.ant-card-head-title {
+  color: var(--text-color);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ant-tag {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.ant-list-item-meta-title {
+  color: var(--text-color) !important;
+  font-weight: 700;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+  background: #eef2f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+  background: #b8c4d0;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: #94a3b8;
 }
 
-/* 通用类 */
 .text-center {
   text-align: center;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.text-right {
-  text-align: right;
 }
 
 .full-width {
   width: 100%;
 }
 
-.full-height {
-  height: 100%;
-}
-
-.flex {
-  display: flex;
-}
-
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.flex-wrap {
-  flex-wrap: wrap;
-}
-
-.mb-16 {
-  margin-bottom: 16px;
-}
-
-.mb-24 {
-  margin-bottom: 24px;
-}
-
-.mt-16 {
-  margin-top: 16px;
-}
-
-.mt-24 {
-  margin-top: 24px;
-}
-
-.p-16 {
-  padding: 16px;
-}
-
-.p-24 {
-  padding: 24px;
-}
-
-/* 响应式设计 */
 @media (max-width: 768px) {
   html {
-    font-size: 12px;
+    font-size: 13px;
   }
-  
+
   .mobile-hidden {
     display: none !important;
   }

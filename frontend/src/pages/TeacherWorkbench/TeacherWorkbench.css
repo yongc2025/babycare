@@ -1,0 +1,51 @@
+.teacher-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.teacher-page .page-title h2.ant-typography,
+.teacher-page .page-title .ant-typography {
+  margin: 0;
+}
+
+.teacher-select {
+  min-width: 240px;
+}
+
+.teacher-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.teacher-stat-grid .ant-card-body {
+  display: grid;
+  gap: 4px;
+}
+
+.teacher-stat-grid strong {
+  color: var(--text-color);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.teacher-stat-grid span {
+  color: var(--text-color-secondary);
+}
+
+@media (max-width: 960px) {
+  .teacher-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-select {
+    width: 100%;
+  }
+
+  .teacher-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}

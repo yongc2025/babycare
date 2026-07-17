@@ -1,0 +1,20 @@
+.health-safety-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.health-safety-page .page-title h2.ant-typography,
+.health-safety-page .page-title .ant-typography {
+  margin: 0;
+}
+
+.health-select {
+  min-width: 240px;
+}
+
+@media (max-width: 640px) {
+  .health-select {
+    width: 100%;
+  }
+}

@@ -48,7 +48,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * 查找启用的用户
      */
-    @Query("SELECT u FROM User u WHERE u.enabled = true")
+    @Query("SELECT u FROM User u WHERE u.username = ?1 AND u.enabled = true")
     Optional<User> findByUsernameAndEnabled(String username);
 
     /**

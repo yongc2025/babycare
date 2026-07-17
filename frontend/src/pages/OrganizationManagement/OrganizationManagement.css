@@ -1,0 +1,50 @@
+.organization-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-title h2.ant-typography,
+.page-title .ant-typography {
+  margin: 0;
+}
+
+.toolbar {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.organization-selector,
+.classroom-selector {
+  min-width: 260px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.list-icon {
+  color: var(--primary-color);
+  font-size: 20px;
+}
+
+.enrollment-list {
+  margin-top: 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .organization-selector,
+  .classroom-selector {
+    width: 100%;
+  }
+}

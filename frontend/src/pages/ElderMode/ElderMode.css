@@ -1,0 +1,252 @@
+.elder-mode-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: #1f2a37;
+}
+
+.elder-mode-page .ant-typography,
+.elder-mode-page .ant-list-item-meta-title,
+.elder-mode-page .ant-list-item-meta-description {
+  color: inherit;
+}
+
+.elder-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px;
+  border: 1px solid #c8d8d3;
+  border-radius: 8px;
+  background: #f7fbf9;
+}
+
+.elder-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #167761;
+  font-weight: 700;
+}
+
+.elder-hero h1.ant-typography {
+  margin: 0 0 8px;
+  color: #14213d;
+  font-size: 34px;
+  line-height: 1.2;
+}
+
+.elder-hero .ant-typography {
+  margin-bottom: 0;
+  font-size: 16px;
+}
+
+.elder-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.elder-alert {
+  border-radius: 8px;
+}
+
+.elder-status-grid,
+.elder-main-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.elder-status-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.elder-main-grid {
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  align-items: start;
+}
+
+.elder-status-card,
+.elder-section,
+.elder-empty-panel {
+  border: 1px solid #cfd9df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.elder-status-card {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 22px;
+}
+
+.elder-status-card .anticon {
+  color: #167761;
+  font-size: 28px;
+}
+
+.elder-status-card span {
+  color: #52606d;
+  font-size: 16px;
+}
+
+.elder-status-card strong {
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.elder-section,
+.elder-empty-panel {
+  padding: 24px;
+}
+
+.elder-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.elder-section-title .anticon {
+  color: #167761;
+  font-size: 24px;
+}
+
+.elder-section-title h2 {
+  margin: 0;
+  color: #14213d;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.elder-report-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.elder-report-body h3,
+.elder-subtitle {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+}
+
+.elder-report-body p {
+  margin: 0;
+  padding: 14px 16px;
+  border-left: 4px solid #167761;
+  background: #f4faf8;
+  color: #243b53;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.elder-teacher-note {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #a7d7c7;
+  border-radius: 8px;
+  background: #eefaf5;
+}
+
+.elder-teacher-note strong {
+  color: #0f604f;
+}
+
+.elder-full-width {
+  width: 100%;
+}
+
+.elder-list-item {
+  padding: 14px 0 !important;
+}
+
+.elder-list-item .ant-list-item-meta-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.elder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.elder-mode-large {
+  font-size: 18px;
+}
+
+.elder-mode-large .elder-hero h1.ant-typography {
+  font-size: 40px;
+}
+
+.elder-mode-large .elder-report-body p,
+.elder-mode-large .ant-list-item-meta-description,
+.elder-mode-large .ant-btn,
+.elder-mode-large .ant-picker-input input,
+.elder-mode-large .ant-switch + span {
+  font-size: 19px;
+}
+
+.elder-mode-large .elder-list-item .ant-list-item-meta-title {
+  font-size: 21px;
+}
+
+.elder-mode-contrast {
+  color: #111827;
+}
+
+.elder-mode-contrast .elder-hero,
+.elder-mode-contrast .elder-section,
+.elder-mode-contrast .elder-status-card,
+.elder-mode-contrast .elder-empty-panel {
+  border-color: #1f2937;
+}
+
+.elder-mode-contrast .elder-status-card strong,
+.elder-mode-contrast .elder-section-title h2,
+.elder-mode-contrast .elder-report-body h3,
+.elder-mode-contrast .elder-subtitle {
+  color: #000000;
+}
+
+@media (max-width: 960px) {
+  .elder-hero,
+  .elder-controls {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .elder-hero {
+    flex-direction: column;
+  }
+
+  .elder-status-grid,
+  .elder-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .elder-hero,
+  .elder-section,
+  .elder-empty-panel {
+    padding: 18px;
+  }
+
+  .elder-status-card {
+    min-height: 112px;
+    padding: 18px;
+  }
+
+  .elder-mode-large .elder-hero h1.ant-typography {
+    font-size: 32px;
+  }
+}

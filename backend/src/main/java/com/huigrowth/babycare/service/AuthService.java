@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /**
  * 认证服务
@@ -35,41 +36,47 @@ public class AuthService {
      */
     @Transactional
     public JwtResponse register(RegisterRequest request) {
+        String username = request.getUsername().trim();
+        String email = normalizeBlank(request.getEmail());
+        String phone = normalizeBlank(request.getPhone());
+        String nickname = normalizeBlank(request.getNickname());
+        String city = normalizeBlank(request.getCity());
+
         // 检查用户名是否已存在
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(username)) {
             throw new BusinessException("用户名已存在");
         }
 
         // 检查邮箱是否已存在（如果提供了邮箱）
-        if (request.getEmail() != null && !request.getEmail().trim().isEmpty() && userRepository.existsByEmail(request.getEmail())) {
+        if (email != null && userRepository.existsByEmail(email)) {
             throw new BusinessException("邮箱已被使用");
         }
 
         // 检查手机号是否已存在
-        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+        if (phone != null && userRepository.existsByPhone(phone)) {
             throw new BusinessException("手机号已被使用");
         }
 
         // 创建新用户
         User user = new User();
-        user.setUsername(request.getUsername());
+        user.setUsername(username);
         // 设置邮箱（可选）
-        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
-            user.setEmail(request.getEmail());
+        if (email != null) {
+            user.setEmail(email);
         } else {
             // 如果没有提供邮箱，使用用户名作为默认邮箱
-            user.setEmail(request.getUsername() + "@example.com");
+            user.setEmail(username + "@example.com");
         }
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setPhone(request.getPhone());
+        user.setPhone(phone);
         // 设置昵称（可选）
-        if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
-            user.setNickname(request.getNickname());
+        if (nickname != null) {
+            user.setNickname(nickname);
         } else {
             // 如果没有提供昵称，使用用户名作为默认昵称
-            user.setNickname(request.getUsername());
+            user.setNickname(username);
         }
-        user.setCity(request.getCity());
+        user.setCity(city);
         user.setRole(User.UserRole.PARENT);
         user.setEnabled(true);
         user.setEmailVerified(false);
@@ -83,6 +90,10 @@ public class AuthService {
         UserResponse userResponse = UserResponse.fromEntity(savedUser);
 
         return new JwtResponse(jwt, userResponse);
+    }
+
+    private String normalizeBlank(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     /**

@@ -1,0 +1,197 @@
+# 变更记录
+
+## 2026-07-16
+
+- 启动第二阶段“产品闭环与验收准备”，将任务板从 T000-T026 能力补齐切换到 T027-T038 页面串联、权限细化、测试补强和技术债清理。
+- 新增 T027-T038 任务：优先做首页真实数据工作台、园长端机构运营页、教师今日班级工作台、日报闭环、家长祖辈端增强、安全健康页面、运营监管页面、权限细化、主链测试和超长文件拆分。
+- 完成 T028 首页真实数据工作台：Dashboard 接入 `organizationAPI`、`classroomAPI`、`directorDashboardAPI`，移除写死统计、班级和提醒数据，补充无机构、无班级、接口失败和加载状态。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 完成 T029 园长端机构/班级/员工/入托管理页面：新增 `/organization-management` 和侧边栏“园所运营”入口，接入 `organizationAPI`、`classroomAPI`、`staffAPI`、`enrollmentAPI`。
+- 园所运营页面支持创建机构、创建班级、添加员工、新增入托档案，并展示机构信息、班级列表、员工列表和班级入托档案空/错/加载状态。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 完成 T030 教师今日班级工作台：新增 `/teacher-workbench` 和侧边栏“班级照护”入口，接入机构、班级、入托、考勤、健康观察和照护记录真实 API。
+- 班级照护页支持按机构/班级查看今日幼儿、考勤、晨午检和照护记录，并支持真实到园和缺勤操作。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 完成 T031 日报闭环页面：新增 `/daily-report-management` 和侧边栏“日报管理”入口，接入 `dailyReportAPI`、机构、班级和入托档案真实 API。
+- 日报闭环页支持按班级和日期选择幼儿，生成日报草稿、生成 AI 辅助草稿、编辑字段、保存并发布；班级照护页新增日报管理入口。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 完成 T032 家长/祖辈端聚合增强：家长日报页新增入托档案、班级通知、接送授权/委托、用药委托聚合，继续复用真实 API 和空状态。
+- 完成 T033 健康安全页面：新增 `/health-safety` 和侧边栏“健康安全”入口，聚合晨午检、用药、事故、安全卫生台账，并支持事故关闭、台账处理中/关闭操作。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 完成 T034 运营监管页面：新增 `/operations-regulatory` 和侧边栏“运营监管”入口，聚合招生线索、收费账单、今日食谱、监管概览和导出字段。
+- 完成 T035 多角色菜单边界：基于现有 `User.role` 区分 ADMIN/PARENT 菜单可见性，园所运营类入口仅 ADMIN 可见，家长/长辈/家庭类入口面向 PARENT。
+- 完成 T036 主链验证：前端 `npm run build` 通过；后端 `mvn test` 通过，但当前后端仍无测试源，真实测试用例后续继续补强。
+- 完成 T037 前端超长文件拆分：`types/index.ts` 改为导出口，原类型移动到 `types/legacy.ts`；`services/api.ts` 拆出 `http.ts`、`legacyApi.ts`、`organizationApi.ts`，主 API 文件降到 347 行。
+- 完成 T038 构建警告清理：`App.tsx` 改为懒加载路由，`vite.config.ts` 增加手动分包并设置合理 chunk 阈值；`backend/pom.xml` 移除重复 web starter，MySQL 驱动坐标改为 `com.mysql:mysql-connector-j`。
+- 最终验证：前端 `npm run build` 已通过且无 Vite chunk 警告；后端 `mvn test` 已通过且无 Maven 依赖警告。
+- 修复 `start-dev.bat` Maven 检测误报：脚本优先使用 `C:\tools\apache-maven-3.9.16\bin\mvn.cmd`，并同步设置 `MAVEN_HOME` 与 PATH；后端编译和启动命令统一使用 `MVN_CMD`。
+- 重写 `start-dev.bat` 为纯 ASCII 输出和 CRLF 换行，修复中文注释/路径空格导致的 batch 解析异常；新增 `--check` 参数用于只检查 Node、Java、Maven 环境而不启动服务。
+- 修正本地 MySQL 配置：`application-dev.properties` 和默认 `application.properties` 的 root 密码同步为 `yongc20`，匹配本机数据库。
+- 完成 T039 后台整体 UI/UX 重构：统一 CSS token 与 Ant Design 主题为托育保育后台风格，主布局改为深绿侧栏、角色空间顶部栏和更克制的工作台视觉。
+- Dashboard 进一步从原 demo 风格升级为园长运营工作台：保留真实机构/班级/园长驾驶舱 API，新增机构运营、教师工作台、健康安全、运营监管四个核心业务入口。
+- 前端验证：`npm run build` 已通过且无 Vite chunk 警告。
+- 任务板推进到 T040 真实数据完整试跑，下一步用本地数据库验证机构、班级、入托、考勤、照护、日报、家长查看主链。
+- 新增 `docs/TEST_PLAN_T040.md`：定义真实数据完整试跑方案、主链测试用例、UI/UX 验收点、缺陷记录模板和交付物要求，供其他 AI 独立执行测试。
+- 完成 T040 测试报告归档：`docs/TEST_REPORT_T040.md` 显示主链 TC-L1-001 至 TC-L1-011 全部通过，L2/L3 补充用例通过。
+- 根据 T040 报告回填 T041-T046 修复任务：中文昵称编码、入园日期展示、注册校验/角色策略、健康照护创建入口、CORS 开发端口、运营监管在托人数统计。
+- 完成 T041-T046 首轮修复：新增 MySQL utf8mb4 启动检查，注册字段空字符串规范化，入托创建默认 ACTIVE，入园日期兼容别名，开发环境自动初始化管理员账号，统一 CORS 配置并补充 `localhost:3001`。
+- TeacherWorkbench 新增照护记录和健康观察创建入口；HealthSafety 新增晨午检、用药委托、事故记录和安全卫生台账创建入口。
+- 验证：后端 `mvn test` 通过；前端 `npm run build` 通过；新增 T047 用于复跑 T040 缺陷修复回归测试。
+- 新增 `docs/ROLE_PERMISSION_AUDIT.md`：从系统管理员、老板/机构管理员、园长、教师、保育员、保健员、安全后勤、财务运营、家长、长辈角度审计工作内容、使用功能、权限边界和责任边界。
+- 根据角色权限审计新增 T048-T077：覆盖系统管理后台、RBAC、多园区组织、园长工作台、班级授权、保育员/保健员/安全后勤/财务运营角色、家长长辈授权和完整入托流程。
+- 更新 `docs/ROLE_PERMISSION_AUDIT.md`：补充家长注册、手机号/短信验证、微信登录预留、园区邀请码、宝宝资料创建和家长绑定入托档案的产品决策。
+- 新增 T078-T080：家长手机号注册与短信验证、邀请码绑定宝宝和入托档案、微信登录/手机号授权预留。
+- 新增 `docs/OPERATION_WORKFLOW.md`：串联系统从平台初始化、机构/集团入驻、多园区搭建、招生报名、宝宝入托、日常照护、家园共育、健康安全、财务收费、监管和经营复盘的完整运转流程。
+
+## 2026-07-15
+
+- 根据正式用户需求 `docs/托育+保育平台需求（用户版-供参考）.md` 完成路线校准。
+- 重写 `docs/托育保育产品规划.md`，明确模块化单体、单 Web 多角色、双龄段架构和分阶段路线。
+- 重写 `docs/DEVELOPMENT_TASKS.md`，将任务板升级为主链、安全健康、园所运营、专业保健、多端平台化五阶段。
+- 重写 `docs/PROJECT_STATUS.md`，同步正式需求吸收结果、当前策略、差距和风险。
+- 新增 `docs/ARCHITECTURE_DECISIONS.md`，记录不立即拆微服务、不立即拆多端、硬件和监管分阶段落地等 ADR。
+- 更新 `docs/AGENT_WORKFLOW.md`，将架构决策文档加入固定恢复阅读顺序。
+- 新增 `docs/需求差异与采纳矩阵.md`，按客户正式需求七大模块记录采纳策略、差距、阶段和任务映射。
+- 更新 `docs/AGENT_WORKFLOW.md`，将需求差异与采纳矩阵加入固定恢复阅读顺序。
+- 对接本地仓库到用户 fork：`https://github.com/yongc2025/babycare.git`，原仓库保留为 `upstream`。
+- 重建前端全局设计 token，统一主色、背景、圆角、阴影和 Ant Design 主题。
+- 重构登录页，改为托育机构工作台入口。
+- 重构主布局，改为后台工作台侧栏、顶部栏和机构信息结构。
+- 重构 Dashboard，改为“今日托育工作台”信息架构。
+- 清理前端核心页面乱码：AI 育儿、保育记录、教育规划、家园协作、家庭管理。
+- 重写 `frontend/src/services/api.ts`，恢复清晰中文错误提示和统一 API 包装。
+- 修正登录表单类型，将 `LoginForm.email` 改为 `LoginForm.emailOrUsername`。
+- 记录新执行规则：后续如发现乱码，必须先修复乱码，再进行功能开发。
+- 验证：`cd frontend && npm run build` 已通过；沙箱内 `spawn EPERM` 后提升权限重跑成功。
+- 将 `familyAPI` 补齐为真实 `/family/*` 接口：创建家庭、加入家庭、家庭详情、添加宝宝、宝宝列表。
+- 重写 `familyStore`，移除旧 `/api/families`、`/api/babies` 直接 `fetch` 和 TODO，统一走 `familyAPI`。
+- `MainLayout` 挂载时加载当前家庭和宝宝，Dashboard/Header 可读取真实家庭上下文。
+- `AIParenting` 移除本地 `setTimeout` 模拟回复，未接真实 AI 接口时展示待接入状态。
+- 验证：前端 `npm run build` 已通过。
+- 新增托育机构后端代码：`Organization`、`OrganizationRepository`、`OrganizationCreateRequest`、`OrganizationUpdateRequest`、`OrganizationResponse`、`OrganizationService`、`OrganizationController`。
+- 新增前端 `Organization` 类型和 `organizationAPI`。
+- 找到本机 Maven 和 JDK：Maven 位于 `C:\tools\apache-maven-3.9.16\bin\mvn.cmd`，JDK 位于 `C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot`。
+- 新增托育班级后端代码：`Classroom`、`ClassroomRepository`、`ClassroomCreateRequest`、`ClassroomUpdateRequest`、`ClassroomResponse`、`ClassroomService`、`ClassroomController`。
+- 新增前端 `Classroom` 类型和 `classroomAPI`。
+- 新增机构员工后端代码：`Staff`、`StaffRepository`、`StaffCreateRequest`、`StaffUpdateRequest`、`StaffResponse`、`StaffService`、`StaffController`。
+- 新增前端 `Staff` 类型、`StaffForm` 和 `staffAPI`。
+- 新增宝宝入托档案后端代码：`Enrollment`、`EnrollmentRepository`、`EnrollmentCreateRequest`、`EnrollmentUpdateRequest`、`EnrollmentResponse`、`EnrollmentService`、`EnrollmentController`。
+- 新增前端 `Enrollment` 类型、`EnrollmentForm` 和 `enrollmentAPI`。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过。
+- 新增考勤与请假后端代码：`AttendanceRecord`、`LeaveRequest`、Repository、DTO、`AttendanceService`、`AttendanceController`。
+- 新增前端 `AttendanceRecord`、`LeaveRequest`、考勤/请假表单类型和 `attendanceAPI`。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T008 标记完成并推进到 T009。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增一日照护后端代码：`CareRecord`、`CareRecordRepository`、DTO、`CareRecordService`、`CareRecordController`。
+- 新增前端 `CareRecord`、照护记录表单类型和 `careRecordAPI`。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`、`docs/需求差异与采纳矩阵.md`，将 T009 标记完成并推进到 T010。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增结构化家长日报后端代码：`DailyReport`、`DailyReportRepository`、DTO、`DailyReportService`、`DailyReportController`。
+- 新增前端 `DailyReport`、日报生成/更新表单类型和 `dailyReportAPI`。
+- 日报生成会汇总同日考勤和一日照护记录，支持草稿、编辑、发布和家长查看已发布日报。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`、`docs/需求差异与采纳矩阵.md`，将 T010 标记完成并推进到 T011。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增家长日报页面 `ParentReports`，接入 `dailyReportAPI`、`attendanceAPI`、`careRecordAPI`。
+- 新增路由 `/parent-reports` 和侧边栏“家长日报”入口。
+- 页面已支持当前宝宝、日期选择、已发布日报、近 7 天考勤、当天照护记录、加载/空/错误状态。
+- 更新 `docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T011 标记完成并推进到 T012。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增晨午检与全日观察后端代码：`HealthObservation`、`HealthObservationRepository`、DTO、`HealthObservationService`、`HealthObservationController`。
+- 新增前端 `HealthObservation`、健康观察表单类型和 `healthObservationAPI`。
+- 支持晨检、午检、全日观察、一摸二看三问四查、体温、异常和跟踪标记。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T012 标记完成并推进到 T013。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增接送授权与委托后端代码：`AuthorizedPickupPerson`、`PickupDelegation`、Repository、DTO、`PickupService`、`PickupController`。
+- 新增前端 `PickupPerson`、`PickupDelegation`、接送相关表单类型和 `pickupAPI`。
+- 支持授权接送人、临时委托接送、园所审核、审核通过生成接送码。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T013 标记完成并推进到 T014。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增用药与过敏后端代码：`AllergyTag`、`MedicationRequest`、`MedicationAdministration`、Repository、DTO、`MedicationCareService`、`MedicationCareController`。
+- 新增前端 `AllergyTag`、`MedicationRequest`、`MedicationAdministration`、用药过敏表单类型和 `medicationCareAPI`。
+- 支持过敏标签、用药委托、园所审核和用药执行记录。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T014 标记完成并推进到 T015。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增异常/事故上报后端代码：`IncidentReport`、`IncidentReportRepository`、DTO、`IncidentReportService`、`IncidentReportController`。
+- 新增前端 `IncidentReport`、异常事故表单类型和 `incidentReportAPI`。
+- 支持异常事故创建、更新处理、关闭、家长确认、按宝宝/班级查询。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T015 标记完成并推进到 T016。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增通知公告后端代码：`Announcement`、`AnnouncementReceipt`、Repository、DTO、`AnnouncementService`、`AnnouncementController`。
+- 新增前端 `Announcement`、通知表单类型和 `announcementAPI`。
+- 支持机构/班级通知草稿、发布、列表查询和用户已读回执。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T016 标记完成并推进到 T017。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增收费账单后端代码：`FeeItem`、`BillingStatement`、Repository、DTO、`BillingService`、`BillingController`。
+- 新增前端 `FeeItem`、`BillingStatement`、财务表单类型和 `billingAPI`。
+- 支持收费项目、生成账单、标记支付、取消账单、按机构/宝宝查询账单。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T017 标记完成并推进到 T018。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增园长驾驶舱聚合接口：`DirectorDashboardResponse`、`DirectorDashboardService`、`DirectorDashboardController`。
+- 新增前端 `DirectorDashboard` 类型和 `directorDashboardAPI`。
+- 支持按机构和日期汇总班级数、在托人数、出勤率、请假数、未关闭异常、未支付账单和已发布通知。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T018 标记完成并推进到 T019。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增招生报名与试托后端代码：`AdmissionLead`、`AdmissionLeadRepository`、DTO、`AdmissionLeadService`、`AdmissionLeadController`。
+- 新增前端 `AdmissionLead`、招生表单类型和 `admissionLeadAPI`。
+- 支持意向登记、报名审核、开始试托、结束试托、机构线索列表和线索详情。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T019 标记完成并推进到 T020。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增食谱与膳食记录后端代码：`MealPlan`、`MealIntakeRecord`、Repository、DTO、`MealPlanService`、`MealPlanController`。
+- 新增前端 `MealPlan`、`MealIntakeRecord`、食谱表单类型和 `mealPlanAPI`。
+- 支持创建/更新/发布食谱、按机构日期查询食谱、记录宝宝实际进食和查看进食记录。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T020 标记完成并推进到 T021。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增安全与卫生台账后端代码：`SafetyLedger`、`SafetyLedgerRepository`、DTO、`SafetyLedgerService`、`SafetyLedgerController`。
+- 新增前端 `SafetyLedger`、台账表单类型和 `safetyLedgerAPI`。
+- 支持创建/更新台账、标记处理中、关闭台账、按机构/日期/类型/状态查询和查看详情。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T021 标记完成并推进到 T022。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增月龄里程碑与五大领域评估后端代码：`ChildDevelopmentAssessment`、`ChildDevelopmentAssessmentRepository`、DTO、`ChildDevelopmentAssessmentService`、`ChildDevelopmentAssessmentController`。
+- 新增前端 `ChildDevelopmentAssessment`、评估表单类型和 `childDevelopmentAssessmentAPI`。
+- 支持创建/更新评估、按宝宝查询评估历史、按入托档案和评估模式查询，以及评估详情。
+- 保留旧 `DevelopmentAssessment` 给历史家庭/AI 评估场景，新增模型承接机构入托后的专业评估。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`，将 T022 标记完成并推进到 T023。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增祖辈模式页面 `frontend/src/pages/ElderMode/ElderMode.tsx` 和样式文件。
+- 新增路由 `/elder-mode` 和侧边栏“长辈模式”入口。
+- 祖辈模式复用 `dailyReportAPI`、`attendanceAPI`、`pickupAPI`，展示日报、考勤、常用接送人和今日委托接送，不新增 mock 数据。
+- UI 支持大字号、高对比开关，并预留语音播报入口。
+- 更新 `docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`、`docs/需求差异与采纳矩阵.md`，将 T023 标记完成并推进到 T024。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- `Organization` 新增监管备案字段：备案编号、许可证号、法定代表人、主管部门、机构等级、运营类型。
+- 新增监管报表后端代码：`RegulatoryReportResponse`、`RegulatoryExportRow`、`RegulatoryReportService`、`RegulatoryReportController`。
+- 新增前端 `RegulatoryReport`、`RegulatoryExportRow` 类型和 `regulatoryReportAPI`。
+- 支持按机构和日期范围聚合备案、班级容量、在托幼儿、员工结构、考勤、健康观察、安全卫生台账，并返回扁平化导出行。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`、`docs/需求差异与采纳矩阵.md`，将 T024 标记完成并推进到 T025。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增硬件接入抽象后端代码：`HardwareDevice`、`HardwareEvent`、Repository、DTO、`HardwareIntegrationService`、`HardwareIntegrationController`。
+- 新增前端 `HardwareDevice`、`HardwareEvent` 类型和 `hardwareIntegrationAPI`。
+- 支持设备档案创建、更新、详情、机构设备列表、硬件原始事件接收、事件状态标记、设备事件列表和机构事件列表。
+- 硬件事件只沉淀原始事实，不自动写入考勤、健康观察或接送记录，避免绕过既有业务校验。
+- 更新 `docs/DATA_MODEL.md`、`docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`、`docs/需求差异与采纳矩阵.md`，将 T025 标记完成并推进到 T026。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。
+- 新增 `DailyReportService.generateAiDraft` 和 `POST /daily-report/ai-draft/generate`。
+- AI 日报辅助基于真实考勤、照护记录和健康观察生成规则化可编辑草稿，并回写 `DailyReport.aiDraftContent`。
+- 前端 `dailyReportAPI` 新增 `generateAiDraft` 方法。
+- 不接外部大模型，不生成随机内容；缺失记录会明确展示为暂无记录。
+- 更新 `docs/API_DESIGN.md`、`docs/DEVELOPMENT_TASKS.md`、`docs/PROJECT_STATUS.md`、`docs/需求差异与采纳矩阵.md`，将 T026 标记完成，当前任务板进入阶段收尾。
+- 后端验证：临时设置 `JAVA_HOME` 后 `mvn test` 已通过。
+- 前端验证：`npm run build` 已通过，仍存在 Vite chunk 超过 500KB 的既有警告。

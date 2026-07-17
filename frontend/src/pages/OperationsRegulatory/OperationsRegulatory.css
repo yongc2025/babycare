@@ -1,0 +1,34 @@
+.operations-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.operations-page .page-title h2.ant-typography,
+.operations-page .page-title .ant-typography {
+  margin: 0;
+}
+
+.operations-select {
+  min-width: 260px;
+}
+
+.regulatory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .operations-select {
+    width: 100%;
+  }
+
+  .regulatory-grid {
+    grid-template-columns: 1fr;
+  }
+}

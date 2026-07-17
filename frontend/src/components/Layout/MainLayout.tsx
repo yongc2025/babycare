@@ -1,73 +1,154 @@
-import React, { useState } from 'react'
-import { Layout, Menu, Avatar, Dropdown, Space, Badge, Button, Drawer } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { Avatar, Badge, Button, Drawer, Dropdown, Layout, Menu, Tag, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import {
-  HomeOutlined,
-  CameraOutlined,
-  RobotOutlined,
+  BellOutlined,
   BookOutlined,
+  CalendarOutlined,
+  CameraOutlined,
+  AuditOutlined,
+  FileTextOutlined,
+  HeartOutlined,
+  BankOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+  MedicineBoxOutlined,
+  MenuOutlined,
+  RobotOutlined,
+  SettingOutlined,
   TeamOutlined,
   UserOutlined,
-  BellOutlined,
-  MenuOutlined,
-  LogoutOutlined,
-  SettingOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { useFamilyStore } from '../../stores/familyStore'
 import './MainLayout.css'
 
 const { Header, Sider, Content } = Layout
+const { Text } = Typography
 
 interface MainLayoutProps {
   children: React.ReactNode
 }
 
+type UserRole = 'PARENT' | 'ADMIN'
+
+interface AppMenuItem {
+  key: string
+  icon: React.ReactNode
+  label: string
+  roles: UserRole[]
+}
+
+const appMenuItems: AppMenuItem[] = [
+  {
+    key: '/dashboard',
+    icon: <HomeOutlined />,
+    label: '今日工作台',
+    roles: ['ADMIN', 'PARENT'],
+  },
+  {
+    key: '/growth-record',
+    icon: <CameraOutlined />,
+    label: '成长记录',
+    roles: ['PARENT'],
+  },
+  {
+    key: '/organization-management',
+    icon: <BankOutlined />,
+    label: '园所运营',
+    roles: ['ADMIN'],
+  },
+  {
+    key: '/teacher-workbench',
+    icon: <CalendarOutlined />,
+    label: '班级照护',
+    roles: ['ADMIN'],
+  },
+  {
+    key: '/daily-report-management',
+    icon: <FileTextOutlined />,
+    label: '日报管理',
+    roles: ['ADMIN'],
+  },
+  {
+    key: '/health-safety',
+    icon: <MedicineBoxOutlined />,
+    label: '健康安全',
+    roles: ['ADMIN'],
+  },
+  {
+    key: '/operations-regulatory',
+    icon: <AuditOutlined />,
+    label: '运营监管',
+    roles: ['ADMIN'],
+  },
+  {
+    key: '/ai-parenting',
+    icon: <RobotOutlined />,
+    label: 'AI 育儿',
+    roles: ['PARENT'],
+  },
+  {
+    key: '/education-planning',
+    icon: <BookOutlined />,
+    label: '教育规划',
+    roles: ['PARENT', 'ADMIN'],
+  },
+  {
+    key: '/family-collaboration',
+    icon: <TeamOutlined />,
+    label: '家园协作',
+    roles: ['PARENT', 'ADMIN'],
+  },
+  {
+    key: '/parent-reports',
+    icon: <FileTextOutlined />,
+    label: '家长日报',
+    roles: ['PARENT', 'ADMIN'],
+  },
+  {
+    key: '/elder-mode',
+    icon: <HeartOutlined />,
+    label: '长辈模式',
+    roles: ['PARENT'],
+  },
+  {
+    key: '/family-management',
+    icon: <UsergroupAddOutlined />,
+    label: '家庭管理',
+    roles: ['PARENT'],
+  },
+  {
+    key: '/system-management',
+    icon: <SettingOutlined />,
+    label: '系统管理',
+    roles: ['ADMIN'],
+  },
+]
+
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
-  const { currentFamily, currentBaby } = useFamilyStore()
+  const { currentBaby, currentFamily, families, loadFamilies } = useFamilyStore()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false)
+  const currentRole: UserRole = user?.role === 'ADMIN' ? 'ADMIN' : 'PARENT'
+  const roleLabel = currentRole === 'ADMIN' ? '园所工作台' : '家长工作台'
+  const visibleMenuItems: MenuProps['items'] = appMenuItems
+    .filter((item) => item.roles.includes(currentRole))
+    .map(({ roles: _roles, ...item }) => item)
 
-  // 导航菜单项
-  const menuItems: MenuProps['items'] = [
-    {
-      key: '/dashboard',
-      icon: <HomeOutlined />,
-      label: '首页',
-    },
-    {
-      key: '/growth-record',
-      icon: <CameraOutlined />,
-      label: '成长记录',
-    },
-    {
-      key: '/ai-parenting',
-      icon: <RobotOutlined />,
-      label: 'AI育儿',
-    },
-    {
-      key: '/education-planning',
-      icon: <BookOutlined />,
-      label: '教育规划',
-    },
-    {
-      key: '/family-collaboration',
-      icon: <TeamOutlined />,
-      label: '家庭协作',
-    },
-    {
-      key: '/family-management',
-      icon: <UsergroupAddOutlined />,
-      label: '家庭管理',
-    },
-  ]
+  useEffect(() => {
+    if (families.length > 0) return
 
-  // 用户下拉菜单
+    loadFamilies().catch(() => {
+      // The store keeps the error state; pages render empty context when loading fails.
+    })
+  }, [families.length, loadFamilies])
+
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
@@ -78,7 +159,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: '设置',
+      label: '系统设置',
     },
     {
       type: 'divider',
@@ -99,113 +180,105 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setMobileMenuVisible(false)
   }
 
+  const renderMenu = (className: string) => (
+    <Menu
+      mode="inline"
+      selectedKeys={[location.pathname]}
+      items={visibleMenuItems}
+      onClick={handleMenuClick}
+      className={className}
+    />
+  )
+
   return (
     <Layout className="main-layout">
-      {/* 桌面端侧边栏 */}
       <Sider
         trigger={null}
         collapsible
         collapsed={collapsed}
         className="layout-sider desktop-only"
         theme="light"
-        width={240}
+        width={248}
       >
-        <div className="logo">
-          <img src="/logo.svg" alt="慧成长" />
-          {!collapsed && <span>慧成长</span>}
+        <div className="layout-logo">
+          <img
+            src={collapsed ? '/logo.svg' : '/brand-compact-light.svg'}
+            alt="好芽儿托育保育机构管理系统"
+            className={collapsed ? 'layout-icon-logo' : 'layout-brand-lockup'}
+          />
         </div>
-        
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="nav-menu"
-        />
+
+        {renderMenu('nav-menu')}
       </Sider>
 
-      <Layout>
-        {/* 顶部导航栏 */}
+      <Layout className="layout-shell">
         <Header className="layout-header">
           <div className="header-left">
-            {/* 桌面端折叠按钮 */}
             <Button
               type="text"
               icon={<MenuOutlined />}
               onClick={() => setCollapsed(!collapsed)}
-              className="desktop-only collapse-btn"
+              className="desktop-only icon-btn"
             />
-            
-            {/* 移动端菜单按钮 */}
             <Button
               type="text"
               icon={<MenuOutlined />}
               onClick={() => setMobileMenuVisible(true)}
-              className="mobile-only"
+              className="mobile-only icon-btn"
             />
 
-            {/* 当前家庭和宝宝信息 */}
-            <div className="family-info">
-              {currentBaby && (
-                <Space>
-                  <Avatar src={currentBaby.avatar} size="small">
-                    {currentBaby.name[0]}
-                  </Avatar>
-                  <span className="baby-name">{currentBaby.name}</span>
-                </Space>
-              )}
+            <div className="workspace-meta">
+              <Text className="workspace-title">
+                {currentRole === 'ADMIN' ? '好芽儿托育中心' : currentFamily?.name || '家庭照护空间'}
+              </Text>
+              <Text className="workspace-subtitle">
+                <CalendarOutlined /> {roleLabel}
+              </Text>
             </div>
           </div>
 
           <div className="header-right">
-            <Space size="large">
-              {/* 通知 */}
-              <Badge count={5} size="small">
-                <Button type="text" icon={<BellOutlined />} />
-              </Badge>
+            {currentBaby && (
+              <div className="current-baby desktop-only">
+                <Avatar src={currentBaby.avatar} size="small">
+                  {currentBaby.name[0]}
+                </Avatar>
+                <span>{currentBaby.name}</span>
+              </div>
+            )}
 
-              {/* 用户信息 */}
-              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                <div className="user-info">
-                  <Avatar src={user?.avatar} size="small">
-                    {user?.nickname?.[0] || user?.username?.[0]}
-                  </Avatar>
-                  <span className="user-name desktop-only">
-                    {user?.nickname || user?.username}
-                  </span>
-                </div>
-              </Dropdown>
-            </Space>
+            <Tag className="role-tag">{roleLabel}</Tag>
+
+            <Badge count={5} size="small">
+              <Button type="text" icon={<BellOutlined />} className="icon-btn" />
+            </Badge>
+
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <button className="user-info" type="button">
+                <Avatar src={user?.avatar} size="small">
+                  {user?.nickname?.[0] || user?.username?.[0] || '用'}
+                </Avatar>
+                <span className="user-name desktop-only">{user?.nickname || user?.username}</span>
+              </button>
+            </Dropdown>
           </div>
         </Header>
 
-        {/* 主内容区域 */}
-        <Content className="layout-content">
-          {children}
-        </Content>
+        <Content className="layout-content">{children}</Content>
       </Layout>
 
-      {/* 移动端抽屉菜单 */}
       <Drawer
-        title="菜单"
+        title="好芽儿"
         placement="left"
         onClose={() => setMobileMenuVisible(false)}
         open={mobileMenuVisible}
         className="mobile-menu"
-        width={280}
+        width={286}
       >
         <div className="mobile-logo">
-          <img src="/logo.svg" alt="慧成长" />
-          <span>慧成长</span>
+          <img src="/brand-compact.svg" alt="好芽儿托育保育机构管理系统" className="mobile-brand-lockup" />
         </div>
-        
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="mobile-nav-menu"
-        />
+        {renderMenu('mobile-nav-menu')}
       </Drawer>
     </Layout>
   )

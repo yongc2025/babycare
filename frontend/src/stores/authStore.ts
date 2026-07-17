@@ -1,7 +1,7 @@
+import { message } from 'antd'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authAPI } from '../services/authService'
-import { message } from 'antd'
 
 export interface User {
   id: string
@@ -21,9 +21,7 @@ interface AuthState {
   token: string | null
   isLoading: boolean
   error: string | null
-  
-  // Actions
-  login: (email: string, password: string) => Promise<void>
+  login: (emailOrUsername: string, password: string) => Promise<void>
   register: (userData: {
     username: string
     password: string
@@ -46,12 +44,12 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      login: async (email: string, password: string) => {
+      login: async (emailOrUsername: string, password: string) => {
         set({ isLoading: true, error: null })
-        
+
         try {
-          const response = await authAPI.login({ emailOrUsername: email, password })
-          
+          const response = await authAPI.login({ emailOrUsername, password })
+
           if (response.success && response.data) {
             set({
               user: response.data.user,
@@ -59,9 +57,10 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
               error: null,
             })
-          } else {
-            throw new Error(response.message || '登录失败')
+            return
           }
+
+          throw new Error(response.message || '登录失败')
         } catch (error: any) {
           const errorMessage = error?.response?.data?.message || error.message || '登录失败'
           set({
@@ -75,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
 
       register: async (userData) => {
         set({ isLoading: true, error: null })
-        
+
         try {
           const response = await authAPI.register({
             username: userData.username,
@@ -84,9 +83,9 @@ export const useAuthStore = create<AuthState>()(
             phone: userData.phone || '',
             nickname: userData.nickname || '',
             confirmPassword: userData.password,
-            agreement: true
+            agreement: true,
           })
-          
+
           if (response.success && response.data) {
             set({
               user: response.data.user,
@@ -94,10 +93,11 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
               error: null,
             })
-            message.success('注册成功！')
-          } else {
-            throw new Error(response.message || '注册失败')
+            message.success('注册成功')
+            return
           }
+
+          throw new Error(response.message || '注册失败')
         } catch (error: any) {
           const errorMessage = error?.response?.data?.message || error.message || '注册失败'
           set({
@@ -115,8 +115,6 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           error: null,
         })
-        
-        // 清除本地存储
         localStorage.removeItem('auth-storage')
       },
 
@@ -130,9 +128,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setLoading: (loading) => set({ isLoading: loading }),
-      
       setError: (error) => set({ error }),
-      
       clearError: () => set({ error: null }),
     }),
     {
@@ -141,6 +137,6 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
       }),
-    }
-  )
+    },
+  ),
 )

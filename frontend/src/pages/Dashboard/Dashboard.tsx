@@ -1,451 +1,426 @@
-import React from 'react'
-import { Row, Col, Card, Statistic, Progress, Avatar, List, Typography, Button, Space, Tag } from 'antd'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Alert, Avatar, Button, Card, Empty, List, Progress, Select, Skeleton, Space, Tag, Typography } from 'antd'
 import {
-  SmileOutlined,
-  CameraOutlined,
-  BookOutlined,
-  TeamOutlined,
+  AlertOutlined,
+  BankOutlined,
   CalendarOutlined,
-  TrophyOutlined,
-  HeartOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined,
+  MedicineBoxOutlined,
   RightOutlined,
+  SafetyCertificateOutlined,
+  TeamOutlined,
 } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
-import { useFamilyStore } from '../../stores/familyStore'
 import dayjs from 'dayjs'
+import { useNavigate } from 'react-router-dom'
+import { classroomAPI, directorDashboardAPI, organizationAPI } from '../../services/api'
+import type { Classroom, DirectorDashboard, Organization } from '../../types'
 import './Dashboard.css'
 
 const { Title, Text } = Typography
 
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  message?: string
+}
+
+const unwrap = <T,>(response: ApiResponse<T> | T): T => {
+  if (response && typeof response === 'object' && 'success' in response) {
+    const apiResponse = response as ApiResponse<T>
+    if (!apiResponse.success || apiResponse.data === undefined) {
+      throw new Error(apiResponse.message || '请求失败')
+    }
+    return apiResponse.data
+  }
+
+  return response as T
+}
+
+const formatMoney = (value?: number) => {
+  if (!value) return '0'
+  return value.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
-  const { currentBaby, currentFamily } = useFamilyStore()
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>()
+  const [overview, setOverview] = useState<DirectorDashboard | null>(null)
+  const [classrooms, setClassrooms] = useState<Classroom[]>([])
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(false)
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // 模拟数据
-  const stats = {
-    photosCount: 156,
-    videosCount: 23,
-    diariesCount: 42,
-    milestonesCount: 8,
-  }
+  const today = dayjs().format('YYYY-MM-DD')
+  const todayText = dayjs().format('YYYY年MM月DD日')
 
-  const recentMilestones = [
+  useEffect(() => {
+    const loadOrganizations = async () => {
+      setIsLoadingOrganizations(true)
+      setError(null)
+
+      try {
+        const data = unwrap<Organization[]>(await organizationAPI.getMyOrganizations())
+        setOrganizations(data)
+        setSelectedOrganizationId((current) => current || data[0]?.id)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '机构信息加载失败')
+      } finally {
+        setIsLoadingOrganizations(false)
+      }
+    }
+
+    loadOrganizations()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedOrganizationId) {
+      setOverview(null)
+      setClassrooms([])
+      return
+    }
+
+    const loadWorkspaceData = async () => {
+      setIsLoadingOverview(true)
+      setError(null)
+
+      const [overviewResult, classroomResult] = await Promise.allSettled([
+        directorDashboardAPI.getOrganizationOverview(selectedOrganizationId, today),
+        classroomAPI.getOrganizationClassrooms(selectedOrganizationId),
+      ])
+
+      if (overviewResult.status === 'fulfilled') {
+        setOverview(unwrap<DirectorDashboard>(overviewResult.value))
+      } else {
+        setOverview(null)
+      }
+
+      if (classroomResult.status === 'fulfilled') {
+        setClassrooms(unwrap<Classroom[]>(classroomResult.value))
+      } else {
+        setClassrooms([])
+      }
+
+      const failed = [overviewResult, classroomResult].some((result) => result.status === 'rejected')
+      setError(failed ? '部分工作台数据暂时无法加载，请稍后重试' : null)
+      setIsLoadingOverview(false)
+    }
+
+    loadWorkspaceData()
+  }, [selectedOrganizationId, today])
+
+  const selectedOrganization = useMemo(
+    () => organizations.find((item) => item.id === selectedOrganizationId),
+    [organizations, selectedOrganizationId],
+  )
+
+  const expectedAttendanceCount = overview?.expectedAttendanceCount || 0
+  const checkedInCount = overview?.checkedInCount || 0
+  const leaveCount = overview?.leaveCount || 0
+  const notArrivedCount = Math.max(expectedAttendanceCount - checkedInCount - leaveCount, 0)
+  const totalCapacity = classrooms.reduce((sum, classroom) => sum + (classroom.capacity || 0), 0)
+  const capacityRate = totalCapacity > 0 && overview
+    ? Math.round((overview.activeEnrollmentCount / totalCapacity) * 100)
+    : 0
+
+  const dashboardStats = [
     {
-      id: '1',
-      title: '第一次独立行走',
-      date: '2025-08-15',
-      category: 'MOTOR',
-      achieved: true,
+      label: '在托幼儿',
+      value: overview?.activeEnrollmentCount ?? 0,
+      unit: '人',
+      trend: `班级 ${overview?.classroomCount ?? classrooms.length} 个`,
+      icon: <TeamOutlined />,
+      tone: 'teal',
     },
     {
-      id: '2',
-      title: '会说"妈妈"',
-      date: '2025-07-20',
-      category: 'LANGUAGE',
-      achieved: true,
+      label: '今日已到园',
+      value: checkedInCount,
+      unit: '人',
+      trend: `出勤率 ${overview?.attendanceRate ?? 0}%`,
+      icon: <CheckCircleOutlined />,
+      tone: 'blue',
     },
     {
-      id: '3',
-      title: '能够独立坐立',
-      date: '2025-06-10',
-      category: 'MOTOR',
-      achieved: true,
+      label: '请假幼儿',
+      value: leaveCount,
+      unit: '人',
+      trend: `未到园 ${notArrivedCount} 人`,
+      icon: <CalendarOutlined />,
+      tone: 'amber',
+    },
+    {
+      label: '待处理事项',
+      value: (overview?.openIncidentCount || 0) + (overview?.unpaidBillCount || 0),
+      unit: '项',
+      trend: `异常 ${overview?.openIncidentCount || 0} · 欠费 ${overview?.unpaidBillCount || 0}`,
+      icon: <AlertOutlined />,
+      tone: 'red',
     },
   ]
 
-  const developmentProgress = {
-    grossMotor: 85,
-    fineMotor: 78,
-    language: 82,
-    cognitive: 90,
-    social: 88,
-  }
-
-  const recentActivities = [
+  const careFlows = [
     {
-      id: '1',
-      type: 'photo',
-      title: '在公园玩耍',
-      time: '2小时前',
-      author: '妈妈',
+      name: '入园考勤',
+      progress: overview?.attendanceRate || 0,
+      desc: `${checkedInCount}/${expectedAttendanceCount} 已到园`,
     },
     {
-      id: '2',
-      type: 'diary',
-      title: '今天学会了新单词',
-      time: '5小时前',
-      author: '爸爸',
+      name: '请假确认',
+      progress: expectedAttendanceCount > 0 ? Math.round((leaveCount / expectedAttendanceCount) * 100) : 0,
+      desc: `${leaveCount} 名幼儿请假`,
     },
     {
-      id: '3',
-      type: 'milestone',
-      title: '第一次独立走路',
-      time: '1天前',
-      author: '奶奶',
+      name: '托位使用',
+      progress: capacityRate,
+      desc: totalCapacity > 0 ? `${overview?.activeEnrollmentCount || 0}/${totalCapacity} 托位` : '暂无容量数据',
+    },
+    {
+      name: '家园通知',
+      progress: overview?.publishedAnnouncementCount ? 100 : 0,
+      desc: `已发布 ${overview?.publishedAnnouncementCount || 0} 条通知`,
     },
   ]
 
-  const upcomingTasks = [
+  const operationAlerts = [
+    overview?.openIncidentCount
+      ? {
+          title: '存在未关闭异常/事故',
+          desc: `${overview.openIncidentCount} 条待处理`,
+          color: 'red',
+        }
+      : null,
+    overview?.unpaidBillCount
+      ? {
+          title: '存在未支付账单',
+          desc: `${overview.unpaidBillCount} 笔，合计 ${formatMoney(overview.unpaidBillAmount)} 元`,
+          color: 'orange',
+        }
+      : null,
+    notArrivedCount
+      ? {
+          title: '仍有幼儿未到园',
+          desc: `${notArrivedCount} 人未签到或未标记请假`,
+          color: 'gold',
+        }
+      : null,
+  ].filter(Boolean) as Array<{ title: string; desc: string; color: string }>
+
+  const operationLinks = [
     {
-      id: '1',
-      title: '疫苗接种提醒',
-      dueDate: '明天',
-      priority: 'high',
+      title: '机构运营',
+      desc: '机构、班级、员工、入托档案',
+      path: '/organization-management',
+      icon: <BankOutlined />,
     },
     {
-      id: '2',
-      title: '早教课程',
-      dueDate: '后天',
-      priority: 'medium',
+      title: '教师工作台',
+      desc: '考勤、晨午检、一日照护',
+      path: '/teacher-workbench',
+      icon: <TeamOutlined />,
     },
     {
-      id: '3',
-      title: '体检预约',
-      dueDate: '下周',
-      priority: 'low',
+      title: '健康安全',
+      desc: '用药、事故、安全台账',
+      path: '/health-safety',
+      icon: <SafetyCertificateOutlined />,
+    },
+    {
+      title: '运营监管',
+      desc: '招生、收费、食谱、监管导出',
+      path: '/operations-regulatory',
+      icon: <FileTextOutlined />,
     },
   ]
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'photo':
-        return <CameraOutlined style={{ color: '#52c41a' }} />
-      case 'diary':
-        return <BookOutlined style={{ color: '#1890ff' }} />
-      case 'milestone':
-        return <TrophyOutlined style={{ color: '#faad14' }} />
-      default:
-        return <SmileOutlined />
-    }
+  if (isLoadingOrganizations) {
+    return (
+      <Card>
+        <Skeleton active paragraph={{ rows: 8 }} />
+      </Card>
+    )
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'red'
-      case 'medium':
-        return 'orange'
-      case 'low':
-        return 'green'
-      default:
-        return 'default'
-    }
-  }
-
-  const calculateAge = (birthday: string) => {
-    const birth = dayjs(birthday)
-    const now = dayjs()
-    const months = now.diff(birth, 'month')
-    const years = Math.floor(months / 12)
-    const remainingMonths = months % 12
-
-    if (years > 0) {
-      return `${years}岁${remainingMonths}个月`
-    } else {
-      return `${months}个月`
-    }
+  if (!isLoadingOrganizations && organizations.length === 0) {
+    return (
+      <Card>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="当前账号还没有可管理的托育机构"
+        >
+          <Text type="secondary">请先创建机构，再继续配置班级、员工和入托档案。</Text>
+        </Empty>
+      </Card>
+    )
   }
 
   return (
     <div className="dashboard">
-      {/* 宝宝信息卡片 */}
-      {currentBaby && (
-        <Card className="baby-info-card">
-          <div className="baby-info">
-            <Avatar size={80} src={currentBaby.avatar} className="baby-avatar">
-              {currentBaby.name[0]}
-            </Avatar>
-            <div className="baby-details">
-              <Title level={3} className="baby-name">
-                {currentBaby.name}
-              </Title>
-              <Space direction="vertical" size="small">
-                <Text type="secondary">
-                  <CalendarOutlined /> {calculateAge(currentBaby.birthday)}
-                </Text>
-                <Text type="secondary">
-                  生日：{dayjs(currentBaby.birthday).format('YYYY年MM月DD日')}
-                </Text>
-                <Text type="secondary">
-                  <TeamOutlined /> {currentFamily?.name}
-                </Text>
-              </Space>
-            </div>
-            <div className="baby-actions">
-              <Button
-                type="primary"
-                icon={<CameraOutlined />}
-                onClick={() => navigate('/growth-record')}
-              >
-                记录成长
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
+      <section className="dashboard-hero">
+        <div>
+          <Text className="dashboard-kicker">{todayText}</Text>
+          <Title level={1}>园长运营工作台</Title>
+          <Text className="dashboard-desc">
+            面向托育机构日常经营，集中查看今日出勤、托位容量、照护进度、异常安全和收费风险。
+          </Text>
+        </div>
+        <Space className="dashboard-actions" wrap>
+          <Select className="organization-select" value={selectedOrganizationId} onChange={setSelectedOrganizationId}
+            options={organizations.map((item) => ({ label: item.name, value: item.id }))} />
+          <Button type="primary" icon={<FileTextOutlined />} onClick={() => navigate('/parent-reports')}>
+            查看家长日报
+          </Button>
+        </Space>
+      </section>
 
-      {/* 统计数据 */}
-      <Row gutter={[16, 16]} className="stats-row">
-        <Col xs={12} sm={6}>
-          <Card>
-            <Statistic
-              title="照片"
-              value={stats.photosCount}
-              prefix={<CameraOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-              suffix="张"
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card>
-            <Statistic
-              title="视频"
-              value={stats.videosCount}
-              prefix={<CameraOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-              suffix="个"
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card>
-            <Statistic
-              title="日记"
-              value={stats.diariesCount}
-              prefix={<BookOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-              suffix="篇"
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card>
-            <Statistic
-              title="里程碑"
-              value={stats.milestonesCount}
-              prefix={<TrophyOutlined />}
-              valueStyle={{ color: '#faad14' }}
-              suffix="个"
-            />
-          </Card>
-        </Col>
-      </Row>
+      {error && <Alert type="warning" showIcon message={error} />}
 
-      <Row gutter={[16, 16]}>
-        {/* 发育进度 */}
-        <Col xs={24} lg={12}>
-          <Card
-            title="发育进度"
-            extra={
-              <Button
-                type="link"
-                onClick={() => navigate('/ai-parenting')}
-                icon={<RightOutlined />}
-              >
-                查看详情
-              </Button>
-            }
-          >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div>
-                <div className="progress-label">
-                  <span>大运动</span>
-                  <span>{developmentProgress.grossMotor}%</span>
-                </div>
-                <Progress percent={developmentProgress.grossMotor} />
-              </div>
-              <div>
-                <div className="progress-label">
-                  <span>精细动作</span>
-                  <span>{developmentProgress.fineMotor}%</span>
-                </div>
-                <Progress percent={developmentProgress.fineMotor} />
-              </div>
-              <div>
-                <div className="progress-label">
-                  <span>语言发展</span>
-                  <span>{developmentProgress.language}%</span>
-                </div>
-                <Progress percent={developmentProgress.language} />
-              </div>
-              <div>
-                <div className="progress-label">
-                  <span>认知能力</span>
-                  <span>{developmentProgress.cognitive}%</span>
-                </div>
-                <Progress percent={developmentProgress.cognitive} />
-              </div>
-              <div>
-                <div className="progress-label">
-                  <span>社交情感</span>
-                  <span>{developmentProgress.social}%</span>
-                </div>
-                <Progress percent={developmentProgress.social} />
-              </div>
+      <Card className="workspace-card">
+        <div className="workspace-card-inner">
+          <Space direction="vertical" size={4}>
+            <Text type="secondary">当前机构</Text>
+            <Space wrap>
+              <Tag color="cyan" icon={<BankOutlined />}>
+                {selectedOrganization?.name || '未选择机构'}
+              </Tag>
+              {selectedOrganization?.contactPhone && <Tag>{selectedOrganization.contactPhone}</Tag>}
+              {selectedOrganization?.address && <Tag>{selectedOrganization.address}</Tag>}
             </Space>
-          </Card>
-        </Col>
-
-        {/* 最近里程碑 */}
-        <Col xs={24} lg={12}>
-          <Card
-            title="最近里程碑"
-            extra={
-              <Button
-                type="link"
-                onClick={() => navigate('/growth-record')}
-                icon={<RightOutlined />}
-              >
-                查看更多
+          </Space>
+          <Space wrap>
+            {operationLinks.map((item) => (
+              <Button key={item.path} onClick={() => navigate(item.path)}>
+                {item.title}
               </Button>
-            }
-          >
-            <List
-              dataSource={recentMilestones}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        icon={<TrophyOutlined />}
-                        style={{ backgroundColor: '#faad14' }}
-                      />
-                    }
-                    title={item.title}
-                    description={dayjs(item.date).format('YYYY年MM月DD日')}
-                  />
-                  <Tag color="green">已达成</Tag>
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        {/* 最近动态 */}
-        <Col xs={24} lg={12}>
-          <Card
-            title="最近动态"
-            extra={
-              <Button
-                type="link"
-                onClick={() => navigate('/family-collaboration')}
-                icon={<RightOutlined />}
-              >
-                查看更多
-              </Button>
-            }
-          >
-            <List
-              dataSource={recentActivities}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={getActivityIcon(item.type)}
-                    title={item.title}
-                    description={
-                      <Space>
-                        <Text type="secondary">{item.author}</Text>
-                        <Text type="secondary">·</Text>
-                        <Text type="secondary">{item.time}</Text>
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Col>
-
-        {/* 待办任务 */}
-        <Col xs={24} lg={12}>
-          <Card
-            title="待办任务"
-            extra={
-              <Button
-                type="link"
-                onClick={() => navigate('/family-collaboration')}
-                icon={<RightOutlined />}
-              >
-                查看更多
-              </Button>
-            }
-          >
-            <List
-              dataSource={upcomingTasks}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={item.title}
-                    description={item.dueDate}
-                  />
-                  <Tag color={getPriorityColor(item.priority)}>
-                    {item.priority === 'high' && '高优先级'}
-                    {item.priority === 'medium' && '中优先级'}
-                    {item.priority === 'low' && '低优先级'}
-                  </Tag>
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* 快捷操作 */}
-      <Card title="快捷操作" className="quick-actions">
-        <Row gutter={[16, 16]}>
-          <Col xs={12} sm={6}>
-            <Button
-              type="dashed"
-              size="large"
-              block
-              icon={<CameraOutlined />}
-              onClick={() => navigate('/growth-record')}
-              className="quick-btn"
-            >
-              上传照片
-            </Button>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Button
-              type="dashed"
-              size="large"
-              block
-              icon={<BookOutlined />}
-              onClick={() => navigate('/growth-record')}
-              className="quick-btn"
-            >
-              写日记
-            </Button>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Button
-              type="dashed"
-              size="large"
-              block
-              icon={<TrophyOutlined />}
-              onClick={() => navigate('/growth-record')}
-              className="quick-btn"
-            >
-              记录里程碑
-            </Button>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Button
-              type="dashed"
-              size="large"
-              block
-              icon={<HeartOutlined />}
-              onClick={() => navigate('/ai-parenting')}
-              className="quick-btn"
-            >
-              AI咨询
-            </Button>
-          </Col>
-        </Row>
+            ))}
+          </Space>
+        </div>
       </Card>
+
+      <section className="operation-link-grid">
+        {operationLinks.map((item) => (
+          <button className="operation-link" key={item.path} type="button" onClick={() => navigate(item.path)}>
+            <span className="operation-link-icon">{item.icon}</span>
+            <span>
+              <strong>{item.title}</strong>
+              <em>{item.desc}</em>
+            </span>
+            <RightOutlined />
+          </button>
+        ))}
+      </section>
+
+      {isLoadingOverview ? (
+        <Card>
+          <Skeleton active paragraph={{ rows: 10 }} />
+        </Card>
+      ) : (
+        <>
+          <section className="stat-grid">
+            {dashboardStats.map((item) => (
+              <Card className={`stat-card stat-card-${item.tone}`} key={item.label}>
+                <div className="stat-card-icon">{item.icon}</div>
+                <Text className="stat-label">{item.label}</Text>
+                <div className="stat-value">
+                  {item.value}
+                  <span>{item.unit}</span>
+                </div>
+                <Text className="stat-trend">{item.trend}</Text>
+              </Card>
+            ))}
+          </section>
+
+          <section className="dashboard-grid">
+            <Card title="今日运营流程">
+              <Space direction="vertical" size={18} className="full-width">
+                {careFlows.map((item) => (
+                  <div className="care-flow" key={item.name}>
+                    <div className="care-flow-header">
+                      <span>{item.name}</span>
+                      <Text type="secondary">{item.desc}</Text>
+                    </div>
+                    <Progress percent={item.progress} showInfo={false} />
+                  </div>
+                ))}
+              </Space>
+            </Card>
+
+            <Card
+              title="班级概览"
+              extra={
+                <Button type="link" icon={<RightOutlined />} onClick={() => navigate('/organization-management')}>
+                  进入管理
+                </Button>
+              }
+            >
+              <List
+                className="class-list"
+                dataSource={classrooms}
+                locale={{
+                  emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无班级数据" />,
+                }}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<Avatar className="class-avatar">{item.name[0]}</Avatar>}
+                      title={item.name}
+                      description={[
+                        item.ageRangeMinMonths !== undefined && item.ageRangeMaxMonths !== undefined
+                          ? `${item.ageRangeMinMonths}-${item.ageRangeMaxMonths} 月龄`
+                          : '未配置月龄段',
+                        item.capacity ? `容量 ${item.capacity} 人` : '未配置容量',
+                      ].join(' · ')}
+                    />
+                    <Tag color={item.status === 'ACTIVE' ? 'green' : 'default'}>
+                      {item.statusDescription || item.status}
+                    </Tag>
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </section>
+
+          <section className="dashboard-grid">
+            <Card title={<><AlertOutlined /> 运营提醒</>}>
+              <List
+                dataSource={operationAlerts}
+                locale={{
+                  emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无待处理提醒" />,
+                }}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<AlertOutlined className="task-icon" />}
+                      title={item.title}
+                      description={item.desc}
+                    />
+                    <Tag color={item.color}>待处理</Tag>
+                  </List.Item>
+                )}
+              />
+            </Card>
+
+            <Card title={<><MedicineBoxOutlined /> 数据完整度</>}>
+              <Space direction="vertical" size={14} className="full-width">
+                <Alert
+                  type={overview ? 'success' : 'info'}
+                  showIcon
+                  message={overview ? '园长驾驶舱数据已接入' : '暂无园长驾驶舱数据'}
+                  description="当前首页只展示真实接口返回的数据；未接入的录入页面会标记为待接入。"
+                />
+                <div className="data-health-row">
+                  <span>机构</span>
+                  <Tag color="green">{organizations.length} 个</Tag>
+                </div>
+                <div className="data-health-row">
+                  <span>班级</span>
+                  <Tag color={classrooms.length > 0 ? 'green' : 'orange'}>{classrooms.length} 个</Tag>
+                </div>
+              </Space>
+            </Card>
+          </section>
+        </>
+      )}
     </div>
   )
 }
