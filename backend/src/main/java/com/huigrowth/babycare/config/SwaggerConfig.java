@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
-    @Value("${app.name:慧成长育儿平台}")
+    @Value("${app.name:好芽儿育儿平台}")
     private String appName;
 
     @Value("${app.version:1.0.0}")

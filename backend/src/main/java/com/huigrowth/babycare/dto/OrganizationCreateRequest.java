@@ -40,4 +40,10 @@ public class OrganizationCreateRequest {
 
     @Size(max = 50, message = "运营类型长度不能超过50个字符")
     private String operationType;
+
+    private Long orgGroupId;
+
+    private Long parentId;
+
+    private String orgType;
 }

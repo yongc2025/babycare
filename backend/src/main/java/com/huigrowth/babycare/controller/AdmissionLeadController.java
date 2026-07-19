@@ -4,6 +4,10 @@ import com.huigrowth.babycare.dto.AdmissionLeadRequest;
 import com.huigrowth.babycare.dto.AdmissionLeadResponse;
 import com.huigrowth.babycare.dto.AdmissionReviewRequest;
 import com.huigrowth.babycare.dto.AdmissionTrialRequest;
+import com.huigrowth.babycare.dto.EnrollmentResponse;
+import com.huigrowth.babycare.dto.FollowUpRecordRequest;
+import com.huigrowth.babycare.dto.FollowUpRecordResponse;
+import com.huigrowth.babycare.dto.LeadConvertRequest;
 import com.huigrowth.babycare.service.AdmissionLeadService;
 import com.huigrowth.babycare.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -97,6 +101,18 @@ public class AdmissionLeadController {
         return ApiResponse.success("试托已完成", response);
     }
 
+    @Operation(summary = "转为入托档案", description = "将审核通过或试托完成的招生线索转为正式入托档案（T075）")
+    @PostMapping("/{leadId}/convert")
+    public ApiResponse<EnrollmentResponse> convertToEnrollment(
+            Authentication authentication,
+            @PathVariable Long leadId,
+            @Valid @RequestBody LeadConvertRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        EnrollmentResponse response = admissionLeadService.convertToEnrollment(
+                userDetails.getUsername(), leadId, request);
+        return ApiResponse.success("已转为入托档案", response);
+    }
+
     @Operation(summary = "机构招生线索列表")
     @GetMapping("/organization/{organizationId}")
     public ApiResponse<List<AdmissionLeadResponse>> getOrganizationLeads(
@@ -119,5 +135,43 @@ public class AdmissionLeadController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         AdmissionLeadResponse response = admissionLeadService.getLeadDetail(userDetails.getUsername(), leadId);
         return ApiResponse.success(response);
+    }
+
+    // ========== 跟进记录 ==========
+
+    @Operation(summary = "添加跟进记录")
+    @PostMapping("/{leadId}/follow-up")
+    public ApiResponse<FollowUpRecordResponse> addFollowUp(
+            Authentication authentication,
+            @PathVariable Long leadId,
+            @Valid @RequestBody FollowUpRecordRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        FollowUpRecordResponse response = admissionLeadService.addFollowUp(
+                userDetails.getUsername(), leadId, request);
+        return ApiResponse.success("跟进记录已添加", response);
+    }
+
+    @Operation(summary = "招生线索跟进记录列表")
+    @GetMapping("/{leadId}/follow-ups")
+    public ApiResponse<List<FollowUpRecordResponse>> getFollowUps(
+            Authentication authentication,
+            @PathVariable Long leadId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        List<FollowUpRecordResponse> response = admissionLeadService.getFollowUps(
+                userDetails.getUsername(), leadId);
+        return ApiResponse.success(response);
+    }
+
+    // ========== 漏斗统计 ==========
+
+    @Operation(summary = "招生漏斗统计（各阶段数量）")
+    @GetMapping("/funnel/{organizationId}")
+    public ApiResponse<java.util.Map<String, Long>> getFunnelStats(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        java.util.Map<String, Long> stats = admissionLeadService.getFunnelStats(
+                userDetails.getUsername(), organizationId);
+        return ApiResponse.success(stats);
     }
 }

@@ -43,6 +43,13 @@ public class FamilyMember extends BaseEntity {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    // 长辈授权权限（T073）
+    @Column(name = "can_confirm_pickup", nullable = false)
+    private Boolean canConfirmPickup = false;
+
+    @Column(name = "can_confirm_notification", nullable = false)
+    private Boolean canConfirmNotification = false;
+
     /**
      * 家庭角色枚举
      */

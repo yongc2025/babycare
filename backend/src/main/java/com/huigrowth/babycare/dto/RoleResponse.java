@@ -28,7 +28,7 @@ public class RoleResponse {
         r.setCode(role.getCode());
         r.setDescription(role.getDescription());
         r.setType(role.getType() != null ? role.getType().name() : null);
-        r.setSystem(role.getSystem());
+        r.setSystem(role.getIsSystem());
         r.setStatus(role.getStatus() != null ? role.getStatus().name() : null);
         r.setCreatedAt(role.getCreatedAt());
         r.setUpdatedAt(role.getUpdatedAt());

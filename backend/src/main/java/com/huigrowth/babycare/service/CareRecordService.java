@@ -54,6 +54,15 @@ public class CareRecordService {
                 request.getStartedAt(), request.getEndedAt(), request.getRemark(), request.getSource());
         record.setRecordedBy(operator);
 
+        // 补录逻辑：记录日期早于今天 或 明确提供补录原因
+        LocalDate today = LocalDate.now();
+        if (record.getRecordDate().isBefore(today) || StringUtils.hasText(request.getBackfillReason())) {
+            record.setIsBackfill(true);
+            record.setBackfillReason(request.getBackfillReason());
+            record.setBackfilledBy(operator);
+            record.setBackfilledAt(LocalDateTime.now());
+        }
+
         CareRecord saved = careRecordRepository.save(record);
         log.info("用户 {} 为宝宝 {} 新增照护记录 {}", username, enrollment.getBaby().getName(), record.getType());
         return convert(saved);
@@ -243,6 +252,13 @@ public class CareRecordService {
             response.setRecordedById(record.getRecordedBy().getId());
             response.setRecordedByName(record.getRecordedBy().getNickname());
         }
+        response.setIsBackfill(record.getIsBackfill());
+        response.setBackfillReason(record.getBackfillReason());
+        if (record.getBackfilledBy() != null) {
+            response.setBackfilledById(record.getBackfilledBy().getId());
+            response.setBackfilledByName(record.getBackfilledBy().getNickname());
+        }
+        response.setBackfilledAt(record.getBackfilledAt());
         response.setCreatedAt(record.getCreatedAt());
         response.setUpdatedAt(record.getUpdatedAt());
         return response;

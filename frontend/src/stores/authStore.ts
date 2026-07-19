@@ -11,7 +11,7 @@ export interface User {
   avatar?: string
   nickname: string
   city?: string
-  role: 'PARENT' | 'ADMIN'
+  role: 'PARENT' | 'ADMIN' | 'ELDER'
   createdAt: string
   updatedAt: string
 }
@@ -23,12 +23,14 @@ interface AuthState {
   error: string | null
   login: (emailOrUsername: string, password: string) => Promise<void>
   register: (userData: {
-    username: string
+    username?: string
     password: string
     email?: string
     phone?: string
     nickname?: string
+    phoneVerified?: boolean
   }) => Promise<void>
+  phoneLogin: (phone: string, password?: string, code?: string) => Promise<void>
   logout: () => void
   updateUser: (userData: Partial<User>) => void
   setLoading: (loading: boolean) => void
@@ -72,6 +74,34 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      phoneLogin: async (phone: string, password?: string, code?: string) => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const response = await authAPI.phoneLogin({
+            phone,
+            ...(code ? { code } : { password }),
+          })
+
+          if (response.success && response.data) {
+            set({
+              user: response.data.user,
+              token: response.data.token,
+              isLoading: false,
+              error: null,
+            })
+            return
+          }
+
+          throw new Error(response.message || '登录失败')
+        } catch (error: any) {
+          const errorMessage = error?.response?.data?.message || error.message || '登录失败'
+          set({ isLoading: false, error: errorMessage })
+          message.error(errorMessage)
+          throw error
+        }
+      },
+
       register: async (userData) => {
         set({ isLoading: true, error: null })
 
@@ -82,8 +112,9 @@ export const useAuthStore = create<AuthState>()(
             password: userData.password,
             phone: userData.phone || '',
             nickname: userData.nickname || '',
-            confirmPassword: userData.password,
+            confirmPassword: userData.password || '',
             agreement: true,
+            phoneVerified: userData.phoneVerified || false,
           })
 
           if (response.success && response.data) {

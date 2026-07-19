@@ -16,7 +16,7 @@
     <artifactId>babycare-backend</artifactId>
     <version>1.0.0</version>
     <name>BabyCare Backend</name>
-    <description>慧成长育儿平台后端服务</description>
+    <description>好芽儿育儿平台后端服务</description>
 
     <properties>
         <java.version>17</java.version>
@@ -136,6 +136,12 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- AOP -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
     </dependencies>
 

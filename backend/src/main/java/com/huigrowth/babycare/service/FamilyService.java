@@ -257,8 +257,55 @@ public class FamilyService {
         response.setNickname(member.getNickname());
         response.setAvatar(member.getUser().getAvatar());
         response.setRole(member.getRole());
+        response.setRoleDescription(member.getRole().getDescription());
+        response.setCanConfirmPickup(member.getCanConfirmPickup());
+        response.setCanConfirmNotification(member.getCanConfirmNotification());
         response.setJoinedAt(member.getCreatedAt());
         return response;
+    }
+
+    /**
+     * 更新家庭成员权限（T073）
+     */
+    @Transactional
+    public FamilyMemberResponse updateMemberPermissions(String username, Long familyId, Long memberId, FamilyMemberUpdateRequest request) {
+        User operator = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+
+        Family family = familyRepository.findById(familyId)
+                .orElseThrow(() -> new BusinessException("家庭不存在"));
+
+        // 检查操作者是否是家庭成员（且是创建者或家长角色）
+        FamilyMember operatorMember = familyMemberRepository.findByUserAndFamily(operator, family);
+        if (operatorMember == null) {
+            throw new BusinessException("您不是该家庭的成员");
+        }
+
+        if (operatorMember.getRole() != FamilyMember.FamilyRole.CREATOR
+                && operatorMember.getRole() != FamilyMember.FamilyRole.PARENT) {
+            throw new BusinessException("仅创建者或家长可以管理成员权限");
+        }
+
+        FamilyMember member = familyMemberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException("家庭成员不存在"));
+
+        if (!member.getFamily().getId().equals(familyId)) {
+            throw new BusinessException("该成员不属于此家庭");
+        }
+
+        if (request.getNickname() != null) {
+            member.setNickname(request.getNickname());
+        }
+        if (request.getCanConfirmPickup() != null) {
+            member.setCanConfirmPickup(request.getCanConfirmPickup());
+        }
+        if (request.getCanConfirmNotification() != null) {
+            member.setCanConfirmNotification(request.getCanConfirmNotification());
+        }
+
+        FamilyMember saved = familyMemberRepository.save(member);
+        log.info("用户 {} 更新了家庭成员 {} 的权限", username, memberId);
+        return convertToFamilyMemberResponse(saved);
     }
 
     /**

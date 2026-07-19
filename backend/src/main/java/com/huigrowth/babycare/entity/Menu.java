@@ -40,7 +40,7 @@ public class Menu extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private MenuType menuType = MenuType.MENU;
 
-    @Column(name = "visible", nullable = false)
+    @Column(name = "is_visible", nullable = false)
     private Boolean visible = true;
 
     @Column(name = "status", nullable = false, length = 20)

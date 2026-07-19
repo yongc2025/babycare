@@ -18,5 +18,9 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     List<Staff> findByUserOrderByCreatedAtDesc(User user);
 
+    List<Staff> findByOrganizationAndRoleAndStatus(Organization organization, Staff.StaffRole role, Staff.StaffStatus status);
+
     boolean existsByOrganizationAndUser(Organization organization, User user);
+
+    boolean existsByOrganizationIdAndUserIdAndRoleIn(Long organizationId, Long userId, List<Staff.StaffRole> roles);
 }

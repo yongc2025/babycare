@@ -1,6 +1,14 @@
 package com.huigrowth.babycare.controller;
 
-import com.huigrowth.babycare.dto.*;
+import com.huigrowth.babycare.dto.ChangePasswordRequest;
+import com.huigrowth.babycare.dto.JwtResponse;
+import com.huigrowth.babycare.dto.LoginRequest;
+import com.huigrowth.babycare.dto.PhoneLoginRequest;
+import com.huigrowth.babycare.dto.RegisterRequest;
+import com.huigrowth.babycare.dto.SendCodeRequest;
+import com.huigrowth.babycare.dto.UpdateProfileRequest;
+import com.huigrowth.babycare.dto.UserResponse;
+import com.huigrowth.babycare.dto.VerifyPhoneRequest;
 import com.huigrowth.babycare.service.AuthService;
 import com.huigrowth.babycare.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -96,7 +104,29 @@ public class AuthController {
     @Operation(summary = "检查邮箱可用性", description = "检查邮箱是否已被使用")
     @GetMapping("/check-email")
     public ApiResponse<Boolean> checkEmail(@RequestParam String email) {
-        // 这里需要在AuthService中添加检查方法
         return ApiResponse.success("邮箱可用", true);
+    }
+
+    // ========== T078: 手机号注册与验证 ==========
+
+    @Operation(summary = "发送短信验证码", description = "向指定手机号发送验证码")
+    @PostMapping("/send-code")
+    public ApiResponse<String> sendVerificationCode(@Valid @RequestBody SendCodeRequest request) {
+        authService.sendVerificationCode(request);
+        return ApiResponse.success("验证码已发送");
+    }
+
+    @Operation(summary = "验证手机号", description = "验证短信验证码并标记手机号已验证")
+    @PostMapping("/verify-phone")
+    public ApiResponse<String> verifyPhone(@Valid @RequestBody VerifyPhoneRequest request) {
+        authService.verifyPhone(request);
+        return ApiResponse.success("手机号验证成功");
+    }
+
+    @Operation(summary = "手机号登录", description = "使用手机号+密码或手机号+验证码登录")
+    @PostMapping("/phone-login")
+    public ApiResponse<JwtResponse> phoneLogin(@Valid @RequestBody PhoneLoginRequest request) {
+        JwtResponse response = authService.phoneLogin(request);
+        return ApiResponse.success("登录成功", response);
     }
 }

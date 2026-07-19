@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  DatePicker,
   Empty,
   Form,
   Input,
@@ -21,12 +22,13 @@ import {
 import {
   CalendarOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
   FileTextOutlined,
   HeartOutlined,
   MedicineBoxOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
-import dayjs from 'dayjs'
+import dayjs, { Dayjs } from 'dayjs'
 import { useNavigate } from 'react-router-dom'
 import {
   attendanceAPI,
@@ -35,8 +37,9 @@ import {
   enrollmentAPI,
   healthObservationAPI,
   organizationAPI,
+  userStaffAPI,
 } from '../../services/api'
-import type { AttendanceRecord, CareRecord, Classroom, Enrollment, HealthObservation, Organization } from '../../types'
+import type { AttendanceRecord, CareRecord, Classroom, Enrollment, HealthObservation, Organization, StaffInfo } from '../../types'
 import './TeacherWorkbench.css'
 
 const { Title, Paragraph, Text } = Typography
@@ -69,6 +72,7 @@ const TeacherWorkbench: React.FC = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [careRecords, setCareRecords] = useState<CareRecord[]>([])
   const [healthRecords, setHealthRecords] = useState<HealthObservation[]>([])
+  const [staffInfo, setStaffInfo] = useState<StaffInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<'care' | 'health' | null>(null)
@@ -79,6 +83,16 @@ const TeacherWorkbench: React.FC = () => {
   const attendanceByEnrollment = useMemo(() => {
     return new Map(attendanceRecords.map((item) => [item.enrollmentId, item]))
   }, [attendanceRecords])
+
+  const loadStaffInfo = async () => {
+    try {
+      const res = await userStaffAPI.getMyStaffInfo()
+      const data = unwrap<{ staffInfos: StaffInfo[] }>(res)
+      setStaffInfo(data.staffInfos || [])
+    } catch {
+      setStaffInfo([])
+    }
+  }
 
   const loadOrganizations = async () => {
     setLoading(true)
@@ -97,8 +111,17 @@ const TeacherWorkbench: React.FC = () => {
     setLoading(true)
     try {
       const data = unwrap<Classroom[]>(await classroomAPI.getOrganizationClassrooms(id))
-      setClassrooms(data)
-      setClassroomId((current) => current || data[0]?.id)
+
+      // 如果有教师/保育员岗位，只显示授权的班级
+      const assignedIds = new Set(
+        staffInfo
+          .filter((s) => s.organizationId === id)
+          .flatMap((s) => s.assignedClassrooms.map((c) => c.classroomId))
+      )
+      const filtered = assignedIds.size > 0 ? data.filter((c) => assignedIds.has(c.id)) : data
+
+      setClassrooms(filtered)
+      setClassroomId((current) => current || filtered[0]?.id)
     } catch (err) {
       setClassrooms([])
       setError(err instanceof Error ? err.message : '班级信息加载失败')
@@ -129,6 +152,7 @@ const TeacherWorkbench: React.FC = () => {
   }
 
   useEffect(() => {
+    loadStaffInfo()
     loadOrganizations()
   }, [])
 
@@ -160,7 +184,7 @@ const TeacherWorkbench: React.FC = () => {
     const values = await careForm.validateFields()
     await careRecordAPI.createRecord({
       ...values,
-      recordDate: today,
+      recordDate: values.recordDate ? dayjs(values.recordDate).format('YYYY-MM-DD') : today,
       recordTime: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
       source: 'TEACHER_WORKBENCH',
     })
@@ -227,6 +251,43 @@ const TeacherWorkbench: React.FC = () => {
             <Card><Text type="secondary">请假</Text><strong>{leaveCount}</strong><span>人</span></Card>
             <Card><Text type="secondary">健康异常</Text><strong>{abnormalHealthCount}</strong><span>条</span></Card>
           </section>
+
+          {/* 漏记提醒：计算哪些宝宝还有照护类型未记录 */}
+          {(() => {
+            const careTypeLabels: Record<string, string> = {
+              FEEDING: '喂养', WATER: '饮水', SLEEP: '睡眠',
+              TOILET: '如厕', TEMPERATURE: '体温', MOOD: '情绪', ACTIVITY: '活动',
+            }
+            const allCareTypes = ['FEEDING', 'WATER', 'SLEEP', 'TOILET', 'TEMPERATURE', 'MOOD', 'ACTIVITY'] as const
+            const missingBabies = enrollments
+              .map((e) => {
+                const babyRecords = careRecords.filter((r) => r.enrollmentId === e.id)
+                const recordedTypes = new Set<string>(babyRecords.map((r) => r.type))
+                const missing = allCareTypes.filter((t) => !recordedTypes.has(t))
+                return { ...e, missingTypes: missing.map((t) => careTypeLabels[t]) }
+              })
+              .filter((e) => e.missingTypes.length > 0)
+
+            if (missingBabies.length > 0) {
+              return (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={`${missingBabies.length} 名幼儿照护记录不完整`}
+                  description={
+                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                      {missingBabies.slice(0, 5).map((b) => (
+                        <li key={b.id}>{b.babyName} 缺少：{b.missingTypes.join('、')}</li>
+                      ))}
+                      {missingBabies.length > 5 && <li>还有 {missingBabies.length - 5} 名幼儿...</li>}
+                    </ul>
+                  }
+                  style={{ marginBottom: 16 }}
+                />
+              )
+            }
+            return null
+          })()}
 
           <Tabs
             items={[
@@ -305,11 +366,83 @@ const TeacherWorkbench: React.FC = () => {
                       locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无照护记录" /> }}
                       renderItem={(item) => (
                         <List.Item>
-                          <List.Item.Meta title={item.babyName} description={`${item.typeDescription || item.type} · ${item.valueText || item.amount || '-'}${item.unit || ''}`} />
+                          <List.Item.Meta title={item.babyName} description={<Space>{`${item.typeDescription || item.type} · ${item.valueText || item.amount || '-'}${item.unit || ''}`}{item.isBackfill && <Tag color="orange" style={{ fontSize: 12 }}>补录</Tag>}</Space>} />
                           <Tag icon={<CheckCircleOutlined />} color="green">{dayjs(item.recordTime).format('HH:mm')}</Tag>
                         </List.Item>
                       )}
                     />
+                  </Card>
+                ),
+              },
+              {
+                key: 'tasks',
+                label: '照护任务',
+                children: (
+                  <Card title="今日照护任务清单">
+                    {(() => {
+                      const careTypeOptions = [
+                        { type: 'FEEDING', label: '喂养' },
+                        { type: 'WATER', label: '饮水' },
+                        { type: 'SLEEP', label: '睡眠' },
+                        { type: 'TOILET', label: '如厕' },
+                        { type: 'TEMPERATURE', label: '体温' },
+                        { type: 'MOOD', label: '情绪' },
+                        { type: 'ACTIVITY', label: '活动' },
+                      ] as const
+                      return (
+                        <List
+                          dataSource={enrollments}
+                          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前班级暂无入托幼儿" /> }}
+                          renderItem={(enrollment) => {
+                            const babyRecords = careRecords.filter((r) => r.enrollmentId === enrollment.id)
+                            const recordedTypes = new Set(babyRecords.map((r) => r.type))
+                            const missingCount = careTypeOptions.filter((ct) => !recordedTypes.has(ct.type)).length
+                            return (
+                              <List.Item
+                                actions={[
+                                  <Button size="small" type="primary" onClick={() => { careForm.setFieldsValue({ enrollmentId: enrollment.id }); setModal('care') }}>
+                                    新增记录
+                                  </Button>,
+                                ]}
+                              >
+                                <List.Item.Meta
+                                  title={
+                                    <Space>
+                                      <span>{enrollment.babyName}</span>
+                                      {missingCount > 0
+                                        ? <Tag color="red">漏记 {missingCount} 项</Tag>
+                                        : <Tag color="green" icon={<CheckCircleOutlined />}>已完成</Tag>}
+                                    </Space>
+                                  }
+                                  description={
+                                    <Space wrap style={{ marginTop: 4 }}>
+                                      {careTypeOptions.map((ct) => {
+                                        const hasRecord = recordedTypes.has(ct.type)
+                                        return (
+                                          <Tag
+                                            key={ct.type}
+                                            color={hasRecord ? 'green' : 'default'}
+                                            style={{ cursor: hasRecord ? 'default' : 'pointer' }}
+                                            onClick={() => {
+                                              if (!hasRecord) {
+                                                careForm.setFieldsValue({ enrollmentId: enrollment.id, type: ct.type })
+                                                setModal('care')
+                                              }
+                                            }}
+                                          >
+                                            {hasRecord ? <CheckCircleOutlined /> : <CloseCircleOutlined />} {ct.label}
+                                          </Tag>
+                                        )
+                                      })}
+                                    </Space>
+                                  }
+                                />
+                              </List.Item>
+                            )
+                          }}
+                        />
+                      )
+                    })()}
                   </Card>
                 ),
               },
@@ -336,10 +469,24 @@ const TeacherWorkbench: React.FC = () => {
               ]}
             />
           </Form.Item>
+          <Form.Item name="recordDate" label="记录日期" initialValue={dayjs()}>
+            <DatePicker className="full-width" />
+          </Form.Item>
           <Form.Item name="valueText" label="记录内容"><Input placeholder="例如：午餐吃完、睡眠平稳" /></Form.Item>
           <Form.Item name="amount" label="数值"><InputNumber className="full-width" min={0} /></Form.Item>
           <Form.Item name="unit" label="单位"><Input placeholder="ml、分钟、℃" /></Form.Item>
           <Form.Item name="remark" label="备注"><Input.TextArea rows={3} /></Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.recordDate !== cur.recordDate}>
+            {({ getFieldValue }) => {
+              const selectedDate = getFieldValue('recordDate') as Dayjs | undefined
+              const isBackfill = selectedDate && !selectedDate.isSame(dayjs(), 'day')
+              return isBackfill ? (
+                <Form.Item name="backfillReason" label="补录原因" rules={[{ required: true, message: '补录请填写原因' }]}>
+                  <Input.TextArea rows={2} placeholder="请说明为什么补录此记录" />
+                </Form.Item>
+              ) : null
+            }}
+          </Form.Item>
         </Form>
       </Modal>
 

@@ -25,4 +25,12 @@ public interface SafetyLedgerRepository extends JpaRepository<SafetyLedger, Long
     List<SafetyLedger> findByOrganizationAndStatusOrderByLedgerDateDescCreatedAtDesc(
             Organization organization,
             SafetyLedger.LedgerStatus status);
+
+    List<SafetyLedger> findByOrganizationIdAndStatusIn(
+            Long organizationId,
+            List<SafetyLedger.LedgerStatus> statuses);
+
+    long countByOrganizationIdAndStatus(
+            Long organizationId,
+            SafetyLedger.LedgerStatus status);
 }

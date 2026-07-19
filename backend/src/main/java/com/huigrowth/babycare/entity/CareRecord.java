@@ -71,6 +71,22 @@ public class CareRecord extends BaseEntity {
     @JoinColumn(name = "recorded_by")
     private User recordedBy;
 
+    /** 是否补录 */
+    @Column(name = "is_backfill")
+    private Boolean isBackfill = false;
+
+    /** 补录原因 */
+    @Size(max = 300, message = "补录原因不能超过300个字符")
+    @Column(name = "backfill_reason", length = 300, columnDefinition = "VARCHAR(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String backfillReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "backfilled_by")
+    private User backfilledBy;
+
+    @Column(name = "backfilled_at")
+    private LocalDateTime backfilledAt;
+
     public enum CareType {
         FEEDING("喂养"),
         WATER("饮水"),

@@ -1,5 +1,7 @@
 package com.huigrowth.babycare.controller;
 
+import com.huigrowth.babycare.aspect.AuditLogAnnotation;
+import com.huigrowth.babycare.dto.DirectorAppointRequest;
 import com.huigrowth.babycare.dto.OrganizationCreateRequest;
 import com.huigrowth.babycare.dto.OrganizationResponse;
 import com.huigrowth.babycare.dto.OrganizationUpdateRequest;
@@ -11,20 +13,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 /**
  * 托育机构管理控制器
  */
-@Tag(name = "托育机构管理", description = "机构创建、查询、更新等接口")
+@Tag(name = "托育机构管理", description = "机构创建、查询、更新、园长任命等接口")
 @RestController
 @RequestMapping("/organization")
 @RequiredArgsConstructor
@@ -69,5 +65,17 @@ public class OrganizationController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         OrganizationResponse response = organizationService.updateOrganization(userDetails.getUsername(), organizationId, request);
         return ApiResponse.success("机构更新成功", response);
+    }
+
+    @AuditLogAnnotation(action = "APPOINT_DIRECTOR", actionName = "任命园区负责人", targetType = "Organization")
+    @Operation(summary = "任命园长", description = "机构创建者任命指定用户为该机构的园长")
+    @PostMapping("/{organizationId}/appoint-director")
+    public ApiResponse<String> appointDirector(
+            Authentication authentication,
+            @PathVariable Long organizationId,
+            @Valid @RequestBody DirectorAppointRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        organizationService.appointDirector(userDetails.getUsername(), organizationId, request.getUserId());
+        return ApiResponse.success("园长任命成功");
     }
 }

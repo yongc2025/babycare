@@ -2,7 +2,9 @@ package com.huigrowth.babycare.controller;
 
 import com.huigrowth.babycare.dto.DailyReportGenerateRequest;
 import com.huigrowth.babycare.dto.DailyReportResponse;
+import com.huigrowth.babycare.dto.DailyReportReviewRequest;
 import com.huigrowth.babycare.dto.DailyReportUpdateRequest;
+import com.huigrowth.babycare.entity.DailyReport;
 import com.huigrowth.babycare.service.DailyReportService;
 import com.huigrowth.babycare.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -66,12 +68,40 @@ public class DailyReportController {
         return ApiResponse.success("日报更新成功", response);
     }
 
-    @Operation(summary = "发布日报")
+    @Operation(summary = "发布日报（如机构开启审核则变为提交审核）")
     @PostMapping("/{reportId}/publish")
     public ApiResponse<DailyReportResponse> publishReport(Authentication authentication, @PathVariable Long reportId) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         DailyReportResponse response = dailyReportService.publishReport(userDetails.getUsername(), reportId);
-        return ApiResponse.success("日报发布成功", response);
+        boolean isPending = response.getStatus() == DailyReport.ReportStatus.PENDING_APPROVAL;
+        return ApiResponse.success(isPending ? "日报已提交审核" : "日报发布成功", response);
+    }
+
+    @Operation(summary = "提交审核（直接提交待审核）")
+    @PostMapping("/{reportId}/submit")
+    public ApiResponse<DailyReportResponse> submitForReview(Authentication authentication, @PathVariable Long reportId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        DailyReportResponse response = dailyReportService.submitForReview(userDetails.getUsername(), reportId);
+        return ApiResponse.success("日报已提交审核", response);
+    }
+
+    @Operation(summary = "审核通过")
+    @PostMapping("/{reportId}/approve")
+    public ApiResponse<DailyReportResponse> approveReport(Authentication authentication, @PathVariable Long reportId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        DailyReportResponse response = dailyReportService.approveReport(userDetails.getUsername(), reportId);
+        return ApiResponse.success("日报审核通过，已发布", response);
+    }
+
+    @Operation(summary = "驳回审核")
+    @PostMapping("/{reportId}/reject")
+    public ApiResponse<DailyReportResponse> rejectReport(
+            Authentication authentication,
+            @PathVariable Long reportId,
+            @Valid @RequestBody DailyReportReviewRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        DailyReportResponse response = dailyReportService.rejectReport(userDetails.getUsername(), reportId, request.getReason());
+        return ApiResponse.success("日报已驳回", response);
     }
 
     @Operation(summary = "宝宝某日日报")

@@ -1,8 +1,11 @@
 package com.huigrowth.babycare.controller;
 
 import com.huigrowth.babycare.dto.SafetyLedgerHandleRequest;
+import com.huigrowth.babycare.dto.SafetyLedgerOverdueResponse;
 import com.huigrowth.babycare.dto.SafetyLedgerRequest;
 import com.huigrowth.babycare.dto.SafetyLedgerResponse;
+import com.huigrowth.babycare.dto.SafetyLedgerTemplateRequest;
+import com.huigrowth.babycare.dto.SafetyLedgerTemplateResponse;
 import com.huigrowth.babycare.service.SafetyLedgerService;
 import com.huigrowth.babycare.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -113,6 +116,85 @@ public class SafetyLedgerController {
             @PathVariable Long ledgerId) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         SafetyLedgerResponse response = safetyLedgerService.getLedgerDetail(userDetails.getUsername(), ledgerId);
+        return ApiResponse.success(response);
+    }
+
+    // ========== 台账模板 ==========
+
+    @Operation(summary = "创建安全台账模板")
+    @PostMapping("/template/create")
+    public ApiResponse<SafetyLedgerTemplateResponse> createTemplate(
+            Authentication authentication,
+            @Valid @RequestBody SafetyLedgerTemplateRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        SafetyLedgerTemplateResponse response = safetyLedgerService.createTemplate(
+                userDetails.getUsername(), request);
+        return ApiResponse.success("安全台账模板创建成功", response);
+    }
+
+    @Operation(summary = "更新安全台账模板")
+    @PutMapping("/template/{templateId}")
+    public ApiResponse<SafetyLedgerTemplateResponse> updateTemplate(
+            Authentication authentication,
+            @PathVariable Long templateId,
+            @Valid @RequestBody SafetyLedgerTemplateRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        SafetyLedgerTemplateResponse response = safetyLedgerService.updateTemplate(
+                userDetails.getUsername(), templateId, request);
+        return ApiResponse.success("安全台账模板更新成功", response);
+    }
+
+    @Operation(summary = "删除安全台账模板")
+    @PostMapping("/template/{templateId}/delete")
+    public ApiResponse<Void> deleteTemplate(
+            Authentication authentication,
+            @PathVariable Long templateId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        safetyLedgerService.deleteTemplate(userDetails.getUsername(), templateId);
+        return ApiResponse.success("安全台账模板已删除", null);
+    }
+
+    @Operation(summary = "机构安全台账模板列表")
+    @GetMapping("/template/organization/{organizationId}")
+    public ApiResponse<List<SafetyLedgerTemplateResponse>> getOrganizationTemplates(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        List<SafetyLedgerTemplateResponse> response = safetyLedgerService.getOrganizationTemplates(
+                userDetails.getUsername(), organizationId);
+        return ApiResponse.success(response);
+    }
+
+    // ========== 周期任务生成与逾期检测 ==========
+
+    @Operation(summary = "根据模板生成到期台账")
+    @PostMapping("/generate-tasks/{organizationId}")
+    public ApiResponse<String> generateTasks(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        int count = safetyLedgerService.generateTasks(userDetails.getUsername(), organizationId);
+        return ApiResponse.success("成功生成" + count + "条台账任务");
+    }
+
+    @Operation(summary = "检查并标记逾期台账")
+    @PostMapping("/check-overdue/{organizationId}")
+    public ApiResponse<String> checkOverdue(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        int count = safetyLedgerService.checkOverdue(userDetails.getUsername(), organizationId);
+        return ApiResponse.success("已标记" + count + "条逾期台账");
+    }
+
+    @Operation(summary = "机构台账统计（逾期/待处理/处理中数量）")
+    @GetMapping("/overdue-count/{organizationId}")
+    public ApiResponse<SafetyLedgerOverdueResponse> getOverdueCount(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        SafetyLedgerOverdueResponse response = safetyLedgerService.getOverdueCount(
+                userDetails.getUsername(), organizationId);
         return ApiResponse.success(response);
     }
 }

@@ -1,13 +1,19 @@
 package com.huigrowth.babycare.service;
 
+import com.huigrowth.babycare.dto.StaffClassroomAssignmentRequest;
+import com.huigrowth.babycare.dto.StaffClassroomAssignmentResponse;
 import com.huigrowth.babycare.dto.StaffCreateRequest;
 import com.huigrowth.babycare.dto.StaffResponse;
 import com.huigrowth.babycare.dto.StaffUpdateRequest;
+import com.huigrowth.babycare.entity.Classroom;
 import com.huigrowth.babycare.entity.Organization;
 import com.huigrowth.babycare.entity.Staff;
+import com.huigrowth.babycare.entity.StaffClassroomAssignment;
 import com.huigrowth.babycare.entity.User;
 import com.huigrowth.babycare.exception.BusinessException;
+import com.huigrowth.babycare.repository.ClassroomRepository;
 import com.huigrowth.babycare.repository.OrganizationRepository;
+import com.huigrowth.babycare.repository.StaffClassroomAssignmentRepository;
 import com.huigrowth.babycare.repository.StaffRepository;
 import com.huigrowth.babycare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +36,8 @@ public class StaffService {
     private final StaffRepository staffRepository;
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
+    private final ClassroomRepository classroomRepository;
+    private final StaffClassroomAssignmentRepository staffClassroomAssignmentRepository;
 
     @Transactional
     public StaffResponse createStaff(String username, StaffCreateRequest request) {
@@ -81,6 +89,110 @@ public class StaffService {
         Staff saved = staffRepository.save(staff);
         log.info("用户 {} 更新机构员工: {}", username, saved.getUser().getUsername());
         return convertToResponse(saved);
+    }
+
+    // ========== 员工-班级分配 ==========
+
+    @Transactional
+    public StaffClassroomAssignmentResponse assignToClassroom(String username, StaffClassroomAssignmentRequest request) {
+        User operator = getUser(username);
+        Staff staff = staffRepository.findById(request.getStaffId())
+                .orElseThrow(() -> new BusinessException("员工不存在"));
+        Classroom classroom = classroomRepository.findById(request.getClassroomId())
+                .orElseThrow(() -> new BusinessException("班级不存在"));
+
+        // 校验员工和班级属于同一机构
+        if (!staff.getOrganization().getId().equals(classroom.getOrganization().getId())) {
+            throw new BusinessException("员工和班级不属于同一机构");
+        }
+
+        // 校验操作者有权访问该机构
+        Organization organization = staff.getOrganization();
+        if (!organizationRepository.existsByIdAndCreatedBy(organization.getId(), operator)) {
+            throw new BusinessException("您无权操作该机构");
+        }
+
+        // 检查是否已存在分配
+        if (staffClassroomAssignmentRepository.existsByStaffIdAndClassroomId(staff.getId(), classroom.getId())) {
+            throw new BusinessException("该员工已分配到该班级");
+        }
+
+        StaffClassroomAssignment assignment = new StaffClassroomAssignment();
+        assignment.setStaffId(staff.getId());
+        assignment.setClassroomId(classroom.getId());
+        if (request.getAssignmentType() != null) {
+            assignment.setAssignmentType(StaffClassroomAssignment.AssignmentType.valueOf(request.getAssignmentType()));
+        }
+
+        StaffClassroomAssignment saved = staffClassroomAssignmentRepository.save(assignment);
+        log.info("用户 {} 将员工 {} 分配到班级 {}", username, staff.getUser().getUsername(), classroom.getName());
+        return convertToAssignmentResponse(saved, staff, classroom);
+    }
+
+    @Transactional
+    public void removeFromClassroom(String username, Long staffId, Long classroomId) {
+        User operator = getUser(username);
+        Staff staff = staffRepository.findById(staffId)
+                .orElseThrow(() -> new BusinessException("员工不存在"));
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new BusinessException("班级不存在"));
+
+        Organization organization = staff.getOrganization();
+        if (!organizationRepository.existsByIdAndCreatedBy(organization.getId(), operator)) {
+            throw new BusinessException("您无权操作该机构");
+        }
+
+        staffClassroomAssignmentRepository.deleteByStaffIdAndClassroomId(staffId, classroomId);
+        log.info("用户 {} 将员工 {} 从班级 {} 移除", username, staff.getUser().getUsername(), classroom.getName());
+    }
+
+    public List<StaffClassroomAssignmentResponse> getClassroomAssignments(String username, Long classroomId) {
+        User operator = getUser(username);
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new BusinessException("班级不存在"));
+
+        Organization organization = classroom.getOrganization();
+        if (!organizationRepository.existsByIdAndCreatedBy(organization.getId(), operator)) {
+            throw new BusinessException("您无权访问该机构");
+        }
+
+        List<StaffClassroomAssignment> assignments = staffClassroomAssignmentRepository.findByClassroomId(classroomId);
+        return assignments.stream().map(a -> {
+            Staff staff = staffRepository.findById(a.getStaffId()).orElse(null);
+            return convertToAssignmentResponse(a, staff, classroom);
+        }).collect(Collectors.toList());
+    }
+
+    public List<StaffClassroomAssignmentResponse> getStaffAssignments(String username, Long staffId) {
+        User operator = getUser(username);
+        Staff staff = staffRepository.findById(staffId)
+                .orElseThrow(() -> new BusinessException("员工不存在"));
+
+        Organization organization = staff.getOrganization();
+        if (!organizationRepository.existsByIdAndCreatedBy(organization.getId(), operator)) {
+            throw new BusinessException("您无权访问该机构");
+        }
+
+        List<StaffClassroomAssignment> assignments = staffClassroomAssignmentRepository.findByStaffId(staffId);
+        return assignments.stream().map(a -> {
+            Classroom cls = classroomRepository.findById(a.getClassroomId()).orElse(null);
+            return convertToAssignmentResponse(a, staff, cls);
+        }).collect(Collectors.toList());
+    }
+
+    private StaffClassroomAssignmentResponse convertToAssignmentResponse(StaffClassroomAssignment assignment, Staff staff, Classroom classroom) {
+        StaffClassroomAssignmentResponse resp = new StaffClassroomAssignmentResponse();
+        resp.setId(assignment.getId());
+        resp.setStaffId(assignment.getStaffId());
+        resp.setStaffName(staff != null ? staff.getUser().getUsername() : "");
+        resp.setStaffNickname(staff != null ? staff.getUser().getNickname() : "");
+        resp.setStaffRole(staff != null ? staff.getRole().name() : "");
+        resp.setClassroomId(assignment.getClassroomId());
+        resp.setClassroomName(classroom != null ? classroom.getName() : "");
+        resp.setAssignmentType(assignment.getAssignmentType());
+        resp.setAssignmentTypeDescription(assignment.getAssignmentType().getDescription());
+        resp.setCreatedAt(assignment.getCreatedAt());
+        return resp;
     }
 
     private User getUser(String username) {

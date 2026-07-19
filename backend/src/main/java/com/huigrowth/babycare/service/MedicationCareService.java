@@ -25,6 +25,7 @@ import com.huigrowth.babycare.repository.MedicationRequestRepository;
 import com.huigrowth.babycare.repository.OrganizationRepository;
 import com.huigrowth.babycare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MedicationCareService {
@@ -149,6 +151,30 @@ public class MedicationCareService {
         administration.setAdministeredBy(operator);
 
         return convertAdministration(administrationRepository.save(administration));
+    }
+
+    @Transactional
+    public MedicationRequestResponse cancelMedicationRequest(String username, Long medicationRequestId, String reason) {
+        User operator = getUser(username);
+        MedicationRequest medication = medicationRequestRepository.findById(medicationRequestId)
+                .orElseThrow(() -> new BusinessException("用药委托不存在"));
+        if (!medication.getRequestedBy().getId().equals(operator.getId())) {
+            throw new BusinessException("您无权取消该用药委托");
+        }
+        if (medication.getStatus() != MedicationRequest.MedicationStatus.PENDING) {
+            throw new BusinessException("仅待审核的用药委托可以取消");
+        }
+        medication.setStatus(MedicationRequest.MedicationStatus.CANCELLED);
+        medication.setReviewRemark(reason);
+        log.info("用户 {} 取消用药委托 {}", username, medicationRequestId);
+        return convertMedication(medicationRequestRepository.save(medication));
+    }
+
+    public List<MedicationRequestResponse> getMyMedicationRequests(String username) {
+        User operator = getUser(username);
+        return medicationRequestRepository.findByRequestedByOrderByCreatedAtDesc(operator).stream()
+                .map(this::convertMedication)
+                .collect(Collectors.toList());
     }
 
     public List<MedicationRequestResponse> getBabyMedications(String username, Long babyId) {

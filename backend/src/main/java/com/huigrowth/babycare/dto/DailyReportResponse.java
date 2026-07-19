@@ -29,6 +29,10 @@ public class DailyReportResponse {
     private LocalDateTime publishedAt;
     private Long publishedById;
     private String publishedByName;
+    private String reviewComment;
+    private Long reviewedById;
+    private String reviewedByName;
+    private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

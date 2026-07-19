@@ -29,4 +29,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             Baby baby,
             Organization organization,
             Collection<Enrollment.EnrollmentStatus> statuses);
+
+    List<Enrollment> findByOrganizationAndStatusOrderByCreatedAtDesc(Organization organization, Enrollment.EnrollmentStatus status);
 }

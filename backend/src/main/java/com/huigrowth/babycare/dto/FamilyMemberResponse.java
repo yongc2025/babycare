@@ -18,5 +18,8 @@ public class FamilyMemberResponse {
     private String nickname;
     private String avatar;
     private FamilyMember.FamilyRole role;
+    private String roleDescription;
+    private Boolean canConfirmPickup;
+    private Boolean canConfirmNotification;
     private LocalDateTime joinedAt;
 }

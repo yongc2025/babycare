@@ -23,6 +23,13 @@ public class OrganizationResponse {
     private String operationType;
     private Organization.OrganizationStatus status;
     private String statusDescription;
+    private Long orgGroupId;
+    private String orgGroupName;
+    private Long parentId;
+    private String parentName;
+    private Organization.OrgType orgType;
+    private String orgTypeDescription;
+    private Boolean dailyReportApprovalRequired;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

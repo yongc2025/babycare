@@ -1,5 +1,6 @@
 package com.huigrowth.babycare.controller;
 
+import com.huigrowth.babycare.aspect.AuditLogAnnotation;
 import com.huigrowth.babycare.dto.*;
 import com.huigrowth.babycare.service.RbacService;
 import com.huigrowth.babycare.util.ApiResponse;
@@ -17,7 +18,7 @@ import java.util.List;
  */
 @Tag(name = "权限管理", description = "角色、权限、菜单、用户角色分配等 RBAC 接口")
 @RestController
-@RequestMapping("/api/admin/rbac")
+@RequestMapping("/admin/rbac")
 @RequiredArgsConstructor
 public class RbacController {
 
@@ -37,18 +38,21 @@ public class RbacController {
         return ApiResponse.success(rbacService.getRole(id));
     }
 
+    @AuditLogAnnotation(action = "CREATE_ROLE", actionName = "创建角色", targetType = "Role")
     @Operation(summary = "创建角色")
     @PostMapping("/roles")
     public ApiResponse<RoleResponse> createRole(@Valid @RequestBody RoleCreateRequest request) {
         return ApiResponse.success("创建成功", rbacService.createRole(request));
     }
 
+    @AuditLogAnnotation(action = "UPDATE_ROLE", actionName = "更新角色", targetType = "Role")
     @Operation(summary = "更新角色")
     @PutMapping("/roles/{id}")
     public ApiResponse<RoleResponse> updateRole(@PathVariable Long id, @Valid @RequestBody RoleUpdateRequest request) {
         return ApiResponse.success("更新成功", rbacService.updateRole(id, request));
     }
 
+    @AuditLogAnnotation(action = "DELETE_ROLE", actionName = "删除角色", targetType = "Role")
     @Operation(summary = "删除角色")
     @DeleteMapping("/roles/{id}")
     public ApiResponse<String> deleteRole(@PathVariable Long id) {
@@ -58,6 +62,7 @@ public class RbacController {
 
     // ========== 用户-角色分配 ==========
 
+    @AuditLogAnnotation(action = "ASSIGN_USER_ROLE", actionName = "分配用户角色", targetType = "UserRoleRelation")
     @Operation(summary = "分配用户角色")
     @PostMapping("/user-roles")
     public ApiResponse<String> assignUserRoles(@Valid @RequestBody RoleAssignRequest request) {
@@ -73,6 +78,7 @@ public class RbacController {
 
     // ========== 角色-菜单分配 ==========
 
+    @AuditLogAnnotation(action = "ASSIGN_ROLE_MENU", actionName = "分配角色菜单", targetType = "RoleMenuRelation")
     @Operation(summary = "分配角色菜单")
     @PostMapping("/role-menus")
     public ApiResponse<String> assignRoleMenus(@Valid @RequestBody RoleMenuAssignRequest request) {
@@ -88,6 +94,7 @@ public class RbacController {
 
     // ========== 角色-权限分配 ==========
 
+    @AuditLogAnnotation(action = "ASSIGN_ROLE_PERMISSION", actionName = "分配角色权限", targetType = "RolePermissionRelation")
     @Operation(summary = "分配角色权限")
     @PostMapping("/role-permissions")
     public ApiResponse<String> assignRolePermissions(@Valid @RequestBody RolePermissionAssignRequest request) {
@@ -109,12 +116,14 @@ public class RbacController {
         return ApiResponse.success(rbacService.listPermissions());
     }
 
+    @AuditLogAnnotation(action = "CREATE_PERMISSION", actionName = "创建权限", targetType = "Permission")
     @Operation(summary = "创建权限")
     @PostMapping("/permissions")
     public ApiResponse<PermissionResponse> createPermission(@Valid @RequestBody PermissionCreateRequest request) {
         return ApiResponse.success("创建成功", rbacService.createPermission(request));
     }
 
+    @AuditLogAnnotation(action = "DELETE_PERMISSION", actionName = "删除权限", targetType = "Permission")
     @Operation(summary = "删除权限")
     @DeleteMapping("/permissions/{id}")
     public ApiResponse<String> deletePermission(@PathVariable Long id) {
@@ -131,17 +140,19 @@ public class RbacController {
     }
 
     @Operation(summary = "获取用户菜单树")
-    @GetMapping("/menues/user")
+    @GetMapping("/menus/user")
     public ApiResponse<List<MenuResponse>> getUserMenus(@RequestParam Long userId) {
         return ApiResponse.success(rbacService.getUserMenus(userId));
     }
 
+    @AuditLogAnnotation(action = "CREATE_MENU", actionName = "创建菜单", targetType = "Menu")
     @Operation(summary = "创建菜单")
     @PostMapping("/menus")
     public ApiResponse<MenuResponse> createMenu(@Valid @RequestBody MenuCreateRequest request) {
         return ApiResponse.success("创建成功", rbacService.createMenu(request));
     }
 
+    @AuditLogAnnotation(action = "DELETE_MENU", actionName = "删除菜单", targetType = "Menu")
     @Operation(summary = "删除菜单")
     @DeleteMapping("/menus/{id}")
     public ApiResponse<String> deleteMenu(@PathVariable Long id) {

@@ -36,7 +36,7 @@ public class HealthController {
     @GetMapping("/info")
     public ApiResponse<Map<String, Object>> info() {
         Map<String, Object> info = new HashMap<>();
-        info.put("name", "慧成长育儿平台");
+        info.put("name", "好芽儿育儿平台");
         info.put("description", "智能化全家庭教育育儿平台");
         info.put("version", "1.0.0");
         info.put("author", "HuiGrowth Team");

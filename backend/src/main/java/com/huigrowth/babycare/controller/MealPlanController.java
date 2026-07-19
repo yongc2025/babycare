@@ -2,6 +2,7 @@ package com.huigrowth.babycare.controller;
 
 import com.huigrowth.babycare.dto.MealIntakeRequest;
 import com.huigrowth.babycare.dto.MealIntakeResponse;
+import com.huigrowth.babycare.dto.MealNutritionAnalysisResponse;
 import com.huigrowth.babycare.dto.MealPlanRequest;
 import com.huigrowth.babycare.dto.MealPlanResponse;
 import com.huigrowth.babycare.service.MealPlanService;
@@ -117,6 +118,21 @@ public class MealPlanController {
         List<MealIntakeResponse> response = mealPlanService.getEnrollmentIntakes(
                 userDetails.getUsername(),
                 enrollmentId);
+        return ApiResponse.success(response);
+    }
+
+    @Operation(summary = "营养摄入分析", description = "按机构+日期范围返回每餐进食分布统计")
+    @GetMapping("/analysis/organization/{organizationId}")
+    public ApiResponse<MealNutritionAnalysisResponse> getNutritionAnalysis(
+            Authentication authentication,
+            @PathVariable Long organizationId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        MealNutritionAnalysisResponse response = mealPlanService.getNutritionAnalysis(
+                userDetails.getUsername(), organizationId, startDate, endDate);
         return ApiResponse.success(response);
     }
 }

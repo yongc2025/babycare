@@ -7,7 +7,7 @@ export interface User {
   avatar?: string
   nickname: string
   city?: string
-  role: 'PARENT' | 'ADMIN'
+  role: 'PARENT' | 'ADMIN' | 'ELDER'
   createdAt: string
   updatedAt: string
 }
@@ -28,8 +28,11 @@ export interface FamilyMember {
   userId: string
   familyId: string
   role: 'CREATOR' | 'PARENT' | 'GRANDPARENT' | 'RELATIVE'
+  roleDescription?: string
   nickname: string
   avatar?: string
+  canConfirmPickup?: boolean
+  canConfirmNotification?: boolean
   joinedAt: string
 }
 
@@ -58,6 +61,7 @@ export interface Organization {
   supervisorDepartment?: string
   organizationLevel?: string
   operationType?: string
+  dailyReportApprovalRequired?: boolean
   status: 'ACTIVE' | 'DISABLED'
   statusDescription?: string
   createdBy: string
@@ -190,7 +194,7 @@ export interface Staff {
   nickname: string
   phone?: string
   email?: string
-  role: 'DIRECTOR' | 'TEACHER' | 'CAREGIVER' | 'FINANCE'
+  role: 'DIRECTOR' | 'TEACHER' | 'CAREGIVER' | 'HEALTH_WORKER' | 'HEALTH_DOCTOR' | 'FINANCE'
   roleDescription?: string
   status: 'ACTIVE' | 'DISABLED'
   statusDescription?: string
@@ -209,7 +213,7 @@ export interface Enrollment {
   organizationName?: string
   classroomId: string
   classroomName?: string
-  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
+  status: 'PENDING' | 'HEALTH_CHECK' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED' | 'WITHDRAWN'
   statusDescription?: string
   enrolledAt?: string
   allergyNotes?: string
@@ -295,6 +299,11 @@ export interface CareRecord {
   source?: string
   recordedById?: string
   recordedByName?: string
+  isBackfill?: boolean
+  backfillReason?: string
+  backfilledById?: string
+  backfilledByName?: string
+  backfilledAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -309,7 +318,7 @@ export interface DailyReport {
   organizationId: string
   organizationName?: string
   reportDate: string
-  status: 'DRAFT' | 'PUBLISHED'
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'PUBLISHED'
   statusDescription?: string
   summary?: string
   attendanceSummary?: string
@@ -321,6 +330,10 @@ export interface DailyReport {
   publishedAt?: string
   publishedById?: string
   publishedByName?: string
+  reviewComment?: string
+  reviewedById?: string
+  reviewedByName?: string
+  reviewedAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -575,6 +588,99 @@ export interface DirectorDashboard {
   publishedAnnouncementCount: number
 }
 
+export interface DirectorWorkbench {
+  organizationId: string
+  organizationName: string
+  date: string
+  classroomCount: number
+  activeEnrollmentCount: number
+  checkedInCount: number
+  leaveCount: number
+  attendanceRate: number
+  openIncidentCount: number
+  unpaidBillCount: number
+  unpaidBillAmount: number
+  pendingTodos: TodoItem[]
+  riskAlerts: RiskAlert[]
+}
+
+export interface TodoItem {
+  id: string
+  type: string
+  typeName: string
+  title: string
+  description: string
+  status: string
+  createdAt: string
+}
+
+export interface RiskAlert {
+  id: string
+  type: string
+  typeName: string
+  title: string
+  description: string
+  severity: string
+}
+
+export interface UserStaffInfo {
+  staffInfos: StaffInfo[]
+}
+
+export interface StaffInfo {
+  staffId: string
+  organizationId: string
+  organizationName: string
+  role: string
+  roleDescription: string
+  assignedClassrooms: ClassroomInfo[]
+}
+
+export interface ClassroomInfo {
+  classroomId: string
+  classroomName: string
+  assignmentType: string
+  assignmentTypeDescription: string
+}
+
+export interface StaffClassroomAssignment {
+  id: string
+  staffId: string
+  staffName: string
+  staffNickname: string
+  staffRole: string
+  classroomId: string
+  classroomName: string
+  assignmentType: string
+  assignmentTypeDescription: string
+  createdAt: string
+}
+
+export interface BossDashboard {
+  totalOrganizations: number
+  totalClassrooms: number
+  totalEnrollments: number
+  totalCheckedInToday: number
+  totalLeaveToday: number
+  overallAttendanceRate: number
+  totalOpenIncidents: number
+  totalUnpaidBills: number
+  totalUnpaidAmount: number
+  orgSummaries: OrgSummary[]
+}
+
+export interface OrgSummary {
+  organizationId: string
+  organizationName: string
+  classroomCount: number
+  activeEnrollmentCount: number
+  checkedInCount: number
+  leaveCount: number
+  attendanceRate: number
+  openIncidentCount: number
+  directorName: string
+}
+
 export interface AdmissionLead {
   id: string
   organizationId: string
@@ -649,6 +755,69 @@ export interface MealPlan {
   intakeRecords?: MealIntakeRecord[]
   createdAt: string
   updatedAt: string
+}
+
+export interface InfectiousDisease {
+  id: string
+  enrollmentId: string
+  babyId: string
+  babyName: string
+  classroomId: string
+  classroomName?: string
+  organizationId: string
+  organizationName?: string
+  diseaseName: string
+  symptoms?: string
+  onsetDate: string
+  status: 'SUSPECTED' | 'CONFIRMED' | 'ISOLATED' | 'RECOVERED' | 'RETURNED'
+  statusDescription?: string
+  severity: 'MILD' | 'MODERATE' | 'SEVERE'
+  severityDescription?: string
+  reportedAt?: string
+  reportedById?: string
+  reportedByName?: string
+  isolationStart?: string
+  isolationEnd?: string
+  returnDate?: string
+  treatmentNotes?: string
+  parentNotified: boolean
+  closeContacts?: string
+  classroomAlertSent: boolean
+  remark?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface InfectiousDiseaseCreateForm {
+  enrollmentId: string
+  organizationId: string
+  classroomId: string
+  diseaseName: string
+  symptoms?: string
+  onsetDate: string
+  status: 'SUSPECTED' | 'CONFIRMED' | 'ISOLATED' | 'RECOVERED' | 'RETURNED'
+  severity: 'MILD' | 'MODERATE' | 'SEVERE'
+  treatmentNotes?: string
+  parentNotified: boolean
+  closeContacts?: string
+  classroomAlertSent: boolean
+  remark?: string
+}
+
+export interface InfectiousDiseaseUpdateForm {
+  diseaseName?: string
+  symptoms?: string
+  onsetDate?: string
+  status?: 'SUSPECTED' | 'CONFIRMED' | 'ISOLATED' | 'RECOVERED' | 'RETURNED'
+  severity?: 'MILD' | 'MODERATE' | 'SEVERE'
+  isolationStart?: string
+  isolationEnd?: string
+  returnDate?: string
+  treatmentNotes?: string
+  parentNotified?: boolean
+  closeContacts?: string
+  classroomAlertSent?: boolean
+  remark?: string
 }
 
 export interface SafetyLedger {
@@ -935,13 +1104,15 @@ export interface LoginForm {
 }
 
 export interface RegisterForm {
-  username: string
+  username?: string
   password: string
-  confirmPassword: string
+  confirmPassword?: string
   email?: string
   phone?: string
   nickname?: string
   agreement?: boolean
+  phoneCode?: string
+  phoneVerified?: boolean
 }
 
 export interface BabyForm {
@@ -1028,7 +1199,7 @@ export interface ClassroomForm {
 export interface StaffForm {
   organizationId: string
   userId: string
-  role: 'DIRECTOR' | 'TEACHER' | 'CAREGIVER' | 'FINANCE'
+  role: 'DIRECTOR' | 'TEACHER' | 'CAREGIVER' | 'HEALTH_WORKER' | 'HEALTH_DOCTOR' | 'FINANCE'
   status?: 'ACTIVE' | 'DISABLED'
 }
 
@@ -1093,6 +1264,7 @@ export interface CareRecordForm {
   endedAt?: string
   remark?: string
   source?: string
+  backfillReason?: string
 }
 
 export interface CareRecordUpdateForm {
@@ -1338,6 +1510,32 @@ export interface MealIntakeForm {
   remark?: string
 }
 
+export interface MealIntakeStats {
+  mealPlanId: string
+  mealDate: string
+  mealType: string
+  mealTypeDescription?: string
+  title: string
+  foodItems?: string
+  allergenNotes?: string
+  totalBabies: number
+  allCount: number
+  mostCount: number
+  halfCount: number
+  lessCount: number
+  noneCount: number
+  allergyCount: number
+  avgIntakeRate: number
+}
+
+export interface MealNutritionAnalysisResponse {
+  totalMeals: number
+  totalBabies: number
+  totalIntakeRecords: number
+  allergyEventCount: number
+  mealStats: MealIntakeStats[]
+}
+
 export interface SafetyLedgerForm {
   organizationId: string
   relatedIncidentId?: string
@@ -1382,6 +1580,179 @@ export interface ChildDevelopmentAssessmentForm {
   summary?: string
   recommendation?: string
   radarData?: string
+}
+
+export interface SafetyLedgerTemplate {
+  id: string
+  organizationId: string
+  ledgerType: 'DISINFECTION' | 'FOOD_SAMPLE' | 'FACILITY_INSPECTION' | 'FIRE_SAFETY' | 'SAFETY_EDUCATION' | 'INCIDENT_FOLLOWUP' | 'OTHER'
+  ledgerTypeDescription?: string
+  frequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+  frequencyDescription?: string
+  dayOfWeek?: number
+  dayOfMonth?: number
+  title: string
+  location?: string
+  responsiblePerson?: string
+  content?: string
+  isActive: boolean
+  lastGeneratedAt?: string
+  nextGenerateDate: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SafetyLedgerTemplateForm {
+  organizationId: string
+  ledgerType: 'DISINFECTION' | 'FOOD_SAMPLE' | 'FACILITY_INSPECTION' | 'FIRE_SAFETY' | 'SAFETY_EDUCATION' | 'INCIDENT_FOLLOWUP' | 'OTHER'
+  frequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+  dayOfWeek?: number
+  dayOfMonth?: number
+  title: string
+  location?: string
+  responsiblePerson?: string
+  content?: string
+  isActive?: boolean
+  nextGenerateDate?: string
+}
+
+export interface SafetyLedgerOverdueCount {
+  overdueCount: number
+  openCount: number
+  processingCount: number
+}
+
+// T068+T069: 跟进记录与财务工作台
+export interface FollowUpRecord {
+  id: string
+  admissionLeadId: string
+  content: string
+  handledBy: string
+  handledByName?: string
+  nextFollowUpAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FollowUpRecordForm {
+  content: string
+  nextFollowUpAt?: string
+}
+
+export interface FinanceWorkbench {
+  billingStats: {
+    totalBillCount: number
+    paidBillCount: number
+    unpaidBillCount: number
+    overdueBillCount: number
+    totalRevenue: number
+    unpaidAmount: number
+  }
+  admissionFunnel: {
+    totalLeadCount: number
+    newLeadCount: number
+    followingLeadCount: number
+    appliedLeadCount: number
+    approvedLeadCount: number
+    trialingLeadCount: number
+    enrolledLeadCount: number
+    lostLeadCount: number
+  }
+  activeFeeItemCount: number
+}
+
+// T070+T079: 入托监护人关系
+export interface EnrollmentGuardian {
+  id: string
+  enrollmentId: string
+  userId: string
+  userName: string
+  userNickname: string
+  userPhone: string
+  relationship: string
+  relationshipDescription: string
+  isPrimary: boolean
+  guardianPhone: string
+  remark?: string
+  bindType: string
+  bindTypeDescription: string
+  createdAt: string
+}
+
+export interface EnrollmentGuardianForm {
+  userId: number | string
+  relationship?: string
+  isPrimary?: boolean
+  guardianPhone?: string
+  remark?: string
+}
+
+export interface MyEnrollment {
+  enrollmentId: string
+  status: string
+  statusDescription: string
+  enrolledAt?: string
+  babyId: string
+  babyName: string
+  babyGender?: string
+  babyBirthday?: string
+  babyIdCard?: string
+  babyBirthCertificateNo?: string
+  organizationId: string
+  organizationName: string
+  classroomId: string
+  classroomName: string
+  guardianId: string
+  relationship: string
+  relationshipDescription: string
+  guardianIdCard?: string
+  guardianOccupation?: string
+  guardianPhone?: string
+  isPrimary: boolean
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  parentConfirmed?: boolean
+  parentConfirmedAt?: string
+  createdAt: string
+}
+
+export interface EnrollmentSupplementRequest {
+  babyIdCard?: string
+  babyBirthCertificateNo?: string
+  guardianIdCard?: string
+  guardianOccupation?: string
+  guardianPhone?: string
+  allergyNotes?: string
+  medicalNotes?: string
+  specialCareNotes?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+}
+
+export interface EnrollmentSupplementResponse {
+  enrollmentId: string
+  status: string
+  statusDescription: string
+  babyInfoFilled: boolean
+  babyIdCard?: string
+  babyBirthCertificateNo?: string
+  babyName: string
+  babyGender?: string
+  babyBirthday?: string
+  guardianInfoFilled: boolean
+  guardianIdCard?: string
+  guardianOccupation?: string
+  guardianPhone?: string
+  guardianRelationship?: string
+  healthInfoFilled: boolean
+  allergyNotes?: string
+  medicalNotes?: string
+  specialCareNotes?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  allFilled: boolean
+  parentConfirmed?: boolean
+  parentConfirmedAt?: string
 }
 
 // 路由类型

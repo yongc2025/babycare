@@ -84,4 +84,19 @@ public class FamilyController {
         List<BabyResponse> response = familyService.getFamilyBabies(userDetails.getUsername(), familyId);
         return ApiResponse.success(response);
     }
+
+    // ========== 长辈授权管理（T073） ==========
+
+    @Operation(summary = "更新家庭成员权限", description = "家长/创建者更新家庭成员的昵称、接送确认、通知确认权限（T073）")
+    @PutMapping("/{familyId}/members/{memberId}")
+    public ApiResponse<FamilyMemberResponse> updateMemberPermissions(
+            Authentication authentication,
+            @PathVariable Long familyId,
+            @PathVariable Long memberId,
+            @Valid @RequestBody FamilyMemberUpdateRequest request) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        FamilyMemberResponse response = familyService.updateMemberPermissions(
+                userDetails.getUsername(), familyId, memberId, request);
+        return ApiResponse.success("成员权限更新成功", response);
+    }
 }

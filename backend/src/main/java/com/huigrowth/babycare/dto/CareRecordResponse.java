@@ -29,6 +29,11 @@ public class CareRecordResponse {
     private String source;
     private Long recordedById;
     private String recordedByName;
+    private Boolean isBackfill;
+    private String backfillReason;
+    private Long backfilledById;
+    private String backfilledByName;
+    private LocalDateTime backfilledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

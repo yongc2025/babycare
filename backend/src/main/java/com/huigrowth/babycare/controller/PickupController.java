@@ -119,6 +119,18 @@ public class PickupController {
         return ApiResponse.success("委托接送审核拒绝", response);
     }
 
+    @Operation(summary = "长辈确认接送委托", description = "被授权的长辈确认接送委托（T073）")
+    @PostMapping("/delegation/{delegationId}/elder-confirm")
+    public ApiResponse<PickupDelegationResponse> elderConfirmDelegation(
+            Authentication authentication,
+            @PathVariable Long delegationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        PickupDelegationResponse response = pickupService.elderConfirmDelegation(
+                userDetails.getUsername(),
+                delegationId);
+        return ApiResponse.success("长辈已确认接送", response);
+    }
+
     @Operation(summary = "宝宝委托接送列表")
     @GetMapping("/delegation/baby/{babyId}")
     public ApiResponse<List<PickupDelegationResponse>> getBabyDelegations(

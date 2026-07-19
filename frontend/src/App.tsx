@@ -20,7 +20,10 @@ const DailyReportManagement = lazy(() => import('./pages/DailyReportManagement/D
 const HealthSafety = lazy(() => import('./pages/HealthSafety/HealthSafety'))
 const OperationsRegulatory = lazy(() => import('./pages/OperationsRegulatory/OperationsRegulatory'))
 const SystemManagement = lazy(() => import('./pages/SystemManagement/SystemManagement'))
+const BossDashboard = lazy(() => import('./pages/BossDashboard/BossDashboard'))
+const PrincipalWorkbench = lazy(() => import('./pages/PrincipalWorkbench/PrincipalWorkbench'))
 const Profile = lazy(() => import('./pages/Profile/Profile'))
+const ParentApplications = lazy(() => import('./pages/ParentApplications/ParentApplications'))
 
 const PageLoading = () => (
   <div style={{ display: 'grid', minHeight: '60vh', placeItems: 'center' }}>
@@ -57,7 +60,10 @@ function App() {
             <Route path="/health-safety" element={<ProtectedRoute><HealthSafety /></ProtectedRoute>} />
             <Route path="/operations-regulatory" element={<ProtectedRoute><OperationsRegulatory /></ProtectedRoute>} />
             <Route path="/system-management" element={<ProtectedRoute><SystemManagement /></ProtectedRoute>} />
+            <Route path="/boss-dashboard" element={<ProtectedRoute><BossDashboard /></ProtectedRoute>} />
+            <Route path="/principal-workbench" element={<ProtectedRoute><PrincipalWorkbench /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/parent-applications" element={<ProtectedRoute><ParentApplications /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Suspense>

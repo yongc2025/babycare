@@ -51,7 +51,13 @@ public class Staff extends BaseEntity {
         DIRECTOR("园长"),
         TEACHER("老师"),
         CAREGIVER("保育员"),
-        FINANCE("财务");
+        HEALTH_WORKER("保健员"),
+        HEALTH_DOCTOR("保健医"),
+        FINANCE("财务"),
+        SAFETY_OFFICER("安全员"),
+        LOGISTICS_STAFF("后勤人员"),
+        OPERATIONS_STAFF("运营人员"),
+        ADMISSIONS_OFFICER("招生人员");
 
         private final String description;
 

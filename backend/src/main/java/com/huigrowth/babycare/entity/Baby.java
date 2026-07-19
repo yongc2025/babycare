@@ -65,6 +65,14 @@ public class Baby extends BaseEntity {
     @Column(name = "description", length = 500, columnDefinition = "VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String description; // 宝宝简介
 
+    @Size(max = 18, message = "身份证号不能超过18个字符")
+    @Column(name = "id_card", length = 18, columnDefinition = "VARCHAR(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String idCard; // 宝宝身份证号
+
+    @Size(max = 30, message = "出生证编号不能超过30个字符")
+    @Column(name = "birth_certificate_no", length = 30, columnDefinition = "VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String birthCertificateNo; // 出生证编号
+
     @OneToMany(mappedBy = "baby", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<GrowthRecord> growthRecords;
 

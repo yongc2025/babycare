@@ -5,6 +5,7 @@ import com.huigrowth.babycare.dto.BillingStatementCreateRequest;
 import com.huigrowth.babycare.dto.BillingStatementResponse;
 import com.huigrowth.babycare.dto.FeeItemRequest;
 import com.huigrowth.babycare.dto.FeeItemResponse;
+import com.huigrowth.babycare.dto.FinanceWorkbenchResponse;
 import com.huigrowth.babycare.service.BillingService;
 import com.huigrowth.babycare.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -115,6 +116,17 @@ public class BillingController {
             @PathVariable Long babyId) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         List<BillingStatementResponse> response = billingService.getBabyBills(userDetails.getUsername(), babyId);
+        return ApiResponse.success(response);
+    }
+
+    @Operation(summary = "财务运营工作台聚合数据")
+    @GetMapping("/finance-workbench/{organizationId}")
+    public ApiResponse<FinanceWorkbenchResponse> getFinanceWorkbench(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        FinanceWorkbenchResponse response = billingService.getFinanceWorkbench(
+                userDetails.getUsername(), organizationId);
         return ApiResponse.success(response);
     }
 }

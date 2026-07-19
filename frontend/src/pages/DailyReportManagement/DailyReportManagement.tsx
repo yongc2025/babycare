@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, DatePicker, Empty, Form, Input, List, Select, Skeleton, Space, Tag, Typography, message } from 'antd'
-import { FileTextOutlined, RobotOutlined, SendOutlined, SyncOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, DatePicker, Empty, Form, Input, List, Modal, Select, Skeleton, Space, Tag, Typography, message } from 'antd'
+import { CheckCircleOutlined, CloseCircleOutlined, FileTextOutlined, RobotOutlined, SendOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 import {
   classroomAPI,
@@ -27,13 +27,13 @@ const unwrap = <T,>(response: ApiResponse<T> | T): T => {
     }
     return apiResponse.data
   }
-
   return response as T
 }
 
 const DailyReportManagement: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [organizationId, setOrganizationId] = useState<string>()
+  const [orgDetail, setOrgDetail] = useState<Organization | null>(null)
   const [classrooms, setClassrooms] = useState<Classroom[]>([])
   const [classroomId, setClassroomId] = useState<string>()
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
@@ -43,6 +43,8 @@ const DailyReportManagement: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
   const [form] = Form.useForm()
 
   const reportDate = selectedDate.format('YYYY-MM-DD')
@@ -50,6 +52,7 @@ const DailyReportManagement: React.FC = () => {
     () => enrollments.find((item) => item.id === selectedEnrollmentId),
     [enrollments, selectedEnrollmentId],
   )
+  const approvalRequired = orgDetail?.dailyReportApprovalRequired
 
   const loadOrganizations = async () => {
     setLoading(true)
@@ -61,6 +64,15 @@ const DailyReportManagement: React.FC = () => {
       setError(err instanceof Error ? err.message : '机构信息加载失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadOrgDetail = async (id: string) => {
+    try {
+      const data = unwrap<Organization>(await organizationAPI.getOrganizationDetail(id))
+      setOrgDetail(data)
+    } catch {
+      setOrgDetail(null)
     }
   }
 
@@ -110,6 +122,7 @@ const DailyReportManagement: React.FC = () => {
 
   useEffect(() => {
     if (organizationId) {
+      loadOrgDetail(organizationId)
       loadClassrooms(organizationId)
     }
   }, [organizationId])
@@ -139,19 +152,22 @@ const DailyReportManagement: React.FC = () => {
 
   const reload = () => classroomId && loadClassroomReports(classroomId)
 
+  const updateReportState = (report: DailyReport) => {
+    setActiveReport(report)
+    setReports((items) => [report, ...items.filter((item) => item.id !== report.id)])
+  }
+
   const handleGenerate = async () => {
     if (!selectedEnrollmentId) return
     const report = unwrap<DailyReport>(await dailyReportAPI.generateReport({ enrollmentId: selectedEnrollmentId, reportDate }))
-    setActiveReport(report)
-    setReports((items) => [report, ...items.filter((item) => item.id !== report.id)])
+    updateReportState(report)
     message.success('日报草稿已生成')
   }
 
   const handleGenerateAiDraft = async () => {
     if (!selectedEnrollmentId) return
     const report = unwrap<DailyReport>(await dailyReportAPI.generateAiDraft({ enrollmentId: selectedEnrollmentId, reportDate }))
-    setActiveReport(report)
-    setReports((items) => [report, ...items.filter((item) => item.id !== report.id)])
+    updateReportState(report)
     message.success('AI 辅助草稿已生成')
   }
 
@@ -159,24 +175,71 @@ const DailyReportManagement: React.FC = () => {
     if (!activeReport) return
     const values = await form.validateFields()
     const report = unwrap<DailyReport>(await dailyReportAPI.updateReport(activeReport.id, values))
-    setActiveReport(report)
-    setReports((items) => [report, ...items.filter((item) => item.id !== report.id)])
+    updateReportState(report)
     message.success('日报已保存')
   }
 
   const handlePublish = async () => {
     if (!activeReport) return
     const report = unwrap<DailyReport>(await dailyReportAPI.publishReport(activeReport.id))
-    setActiveReport(report)
-    setReports((items) => [report, ...items.filter((item) => item.id !== report.id)])
-    message.success('日报已发布')
+    updateReportState(report)
+    if (approvalRequired && report.status === 'PENDING_APPROVAL') {
+      message.success('日报已提交审核，等待园长审批')
+    } else {
+      message.success('日报已发布')
+    }
   }
+
+  const handleSubmitForReview = async () => {
+    if (!activeReport) return
+    const report = unwrap<DailyReport>(await dailyReportAPI.submitForReview(activeReport.id))
+    updateReportState(report)
+    message.success('日报已提交审核')
+  }
+
+  const handleApprove = async () => {
+    if (!activeReport) return
+    const report = unwrap<DailyReport>(await dailyReportAPI.approveReport(activeReport.id))
+    updateReportState(report)
+    message.success('日报审核通过，已发布')
+  }
+
+  const handleReject = async () => {
+    if (!activeReport || !rejectReason.trim()) return
+    const report = unwrap<DailyReport>(await dailyReportAPI.rejectReport(activeReport.id, rejectReason))
+    updateReportState(report)
+    setRejectModalOpen(false)
+    setRejectReason('')
+    message.success('日报已驳回')
+  }
+
+  const getStatusTag = (status: string, statusDescription?: string) => {
+    const label = statusDescription || status
+    switch (status) {
+      case 'PUBLISHED':
+        return <Tag color="green">{label}</Tag>
+      case 'PENDING_APPROVAL':
+        return <Tag color="orange">{label}</Tag>
+      case 'DRAFT':
+        return <Tag color="blue">{label}</Tag>
+      default:
+        return <Tag color="default">{label}</Tag>
+    }
+  }
+
+  const canEdit = activeReport && activeReport.status === 'DRAFT'
+  const canPublish = activeReport && activeReport.status === 'DRAFT'
+  const canApprove = activeReport && activeReport.status === 'PENDING_APPROVAL'
+  const isPublished = activeReport?.status === 'PUBLISHED'
 
   return (
     <div className="daily-report-page">
       <Space direction="vertical" size={4} className="page-title">
         <Title level={2}>日报闭环</Title>
-        <Paragraph type="secondary">基于真实考勤、照护和健康观察生成日报草稿，支持 AI 辅助、编辑和发布。</Paragraph>
+        <Paragraph type="secondary">
+          基于真实考勤、照护和健康观察生成日报草稿，支持 AI 辅助、编辑和发布。
+          {approvalRequired && <Tag color="orange" style={{ marginLeft: 8 }}>审核发布模式</Tag>}
+        </Paragraph>
       </Space>
 
       {error && <Alert type="warning" showIcon message={error} />}
@@ -207,9 +270,7 @@ const DailyReportManagement: React.FC = () => {
                 return (
                   <List.Item onClick={() => setSelectedEnrollmentId(item.id)} className={selectedEnrollmentId === item.id ? 'active-report-row' : ''}>
                     <List.Item.Meta title={item.babyName} description={item.classroomName || '当前班级'} />
-                    <Tag color={report?.status === 'PUBLISHED' ? 'green' : report ? 'blue' : 'orange'}>
-                      {report?.statusDescription || (report ? report.status : '未生成')}
-                    </Tag>
+                    {report ? getStatusTag(report.status, report.statusDescription) : <Tag color="orange">未生成</Tag>}
                   </List.Item>
                 )
               }}
@@ -222,8 +283,28 @@ const DailyReportManagement: React.FC = () => {
               <Space wrap>
                 <Button icon={<FileTextOutlined />} disabled={!selectedEnrollmentId} onClick={handleGenerate}>生成草稿</Button>
                 <Button icon={<RobotOutlined />} disabled={!selectedEnrollmentId} onClick={handleGenerateAiDraft}>AI 草稿</Button>
-                <Button disabled={!activeReport || activeReport.status === 'PUBLISHED'} onClick={handleSave}>保存</Button>
-                <Button type="primary" icon={<SendOutlined />} disabled={!activeReport || activeReport.status === 'PUBLISHED'} onClick={handlePublish}>发布</Button>
+                <Button disabled={!canEdit} onClick={handleSave}>保存</Button>
+                {approvalRequired ? (
+                  <>
+                    <Button type="primary" icon={<SendOutlined />} disabled={!canPublish} onClick={handleSubmitForReview}>
+                      提交审核
+                    </Button>
+                    {canApprove && (
+                      <>
+                        <Button type="primary" icon={<CheckCircleOutlined />} style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={handleApprove}>
+                          审核通过
+                        </Button>
+                        <Button danger icon={<CloseCircleOutlined />} onClick={() => setRejectModalOpen(true)}>
+                          驳回
+                        </Button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <Button type="primary" icon={<SendOutlined />} disabled={!canPublish} onClick={handlePublish}>
+                    发布
+                  </Button>
+                )}
               </Space>
             }
           >
@@ -235,24 +316,58 @@ const DailyReportManagement: React.FC = () => {
               <Form form={form} layout="vertical">
                 <Alert
                   className="report-status"
-                  type={activeReport.status === 'PUBLISHED' ? 'success' : 'info'}
+                  type={isPublished ? 'success' : activeReport.status === 'PENDING_APPROVAL' ? 'warning' : 'info'}
                   showIcon
                   message={activeReport.statusDescription || activeReport.status}
-                  description={activeReport.publishedAt ? `发布时间：${dayjs(activeReport.publishedAt).format('YYYY-MM-DD HH:mm')}` : '草稿可继续编辑'}
+                  description={
+                    isPublished
+                      ? `${activeReport.publishedAt ? `发布时间：${dayjs(activeReport.publishedAt).format('YYYY-MM-DD HH:mm')}` : ''}`
+                      : activeReport.status === 'PENDING_APPROVAL'
+                        ? '日报已提交审核，等待园长审批'
+                        : '草稿可继续编辑'
+                  }
                 />
-                <Form.Item name="summary" label="日报摘要"><Input.TextArea rows={2} /></Form.Item>
-                <Form.Item name="attendanceSummary" label="考勤摘要"><Input.TextArea rows={2} /></Form.Item>
-                <Form.Item name="careSummary" label="照护摘要"><Input.TextArea rows={3} /></Form.Item>
-                <Form.Item name="healthSummary" label="健康摘要"><Input.TextArea rows={2} /></Form.Item>
-                <Form.Item name="activitySummary" label="活动摘要"><Input.TextArea rows={2} /></Form.Item>
-                <Form.Item name="teacherComment" label="老师评语"><Input.TextArea rows={3} /></Form.Item>
-                <Form.Item name="aiDraftContent" label="AI 辅助草稿"><Input.TextArea rows={5} /></Form.Item>
-                <Text type="secondary">AI 草稿不会自动发布，老师确认后再保存和发布。</Text>
+                {activeReport.reviewComment && (
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="驳回原因"
+                    description={activeReport.reviewComment}
+                    style={{ marginBottom: 16 }}
+                  />
+                )}
+                <Form.Item name="summary" label="日报摘要"><Input.TextArea rows={2} disabled={isPublished} /></Form.Item>
+                <Form.Item name="attendanceSummary" label="考勤摘要"><Input.TextArea rows={2} disabled={isPublished} /></Form.Item>
+                <Form.Item name="careSummary" label="照护摘要"><Input.TextArea rows={3} disabled={isPublished} /></Form.Item>
+                <Form.Item name="healthSummary" label="健康摘要"><Input.TextArea rows={2} disabled={isPublished} /></Form.Item>
+                <Form.Item name="activitySummary" label="活动摘要"><Input.TextArea rows={2} disabled={isPublished} /></Form.Item>
+                <Form.Item name="teacherComment" label="老师评语"><Input.TextArea rows={3} disabled={isPublished} /></Form.Item>
+                <Form.Item name="aiDraftContent" label="AI 辅助草稿"><Input.TextArea rows={5} disabled={isPublished} /></Form.Item>
+                <Text type="secondary">
+                  {approvalRequired ? 'AI 草稿不会自动发布，老师确认后提交审核，园长审批后正式发布。' : 'AI 草稿不会自动发布，老师确认后再保存和发布。'}
+                </Text>
               </Form>
             )}
           </Card>
         </div>
       )}
+
+      <Modal
+        title="驳回日报"
+        open={rejectModalOpen}
+        onCancel={() => { setRejectModalOpen(false); setRejectReason('') }}
+        onOk={handleReject}
+        okText="确认驳回"
+        okButtonProps={{ danger: true, disabled: !rejectReason.trim() }}
+      >
+        <div style={{ marginBottom: 8 }}>请输入驳回原因：</div>
+        <Input.TextArea
+          rows={3}
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="请填写驳回原因，老师将根据意见修改后重新提交"
+        />
+      </Modal>
     </div>
   )
 }

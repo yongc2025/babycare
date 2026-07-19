@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
 @Entity
 @Table(name = "sys_data_dict", indexes = {
     @Index(name = "idx_sys_dict_type", columnList = "dict_type"),
-    @Index(name = "idx_sys_dict_type_code", columnList = {"dict_type", "item_code"}, unique = true)
+    @Index(name = "idx_sys_dict_type_code", columnList = "dict_type, item_code", unique = true)
 })
 @Data
 @EqualsAndHashCode(callSuper = true)

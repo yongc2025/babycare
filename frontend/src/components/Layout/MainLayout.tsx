@@ -7,6 +7,7 @@ import {
   CalendarOutlined,
   CameraOutlined,
   AuditOutlined,
+  ClusterOutlined,
   FileTextOutlined,
   HeartOutlined,
   BankOutlined,
@@ -23,6 +24,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { useFamilyStore } from '../../stores/familyStore'
+import { userStaffAPI } from '../../services/api'
 import './MainLayout.css'
 
 const { Header, Sider, Content } = Layout
@@ -32,7 +34,7 @@ interface MainLayoutProps {
   children: React.ReactNode
 }
 
-type UserRole = 'PARENT' | 'ADMIN'
+type UserRole = 'PARENT' | 'ADMIN' | 'ELDER'
 
 interface AppMenuItem {
   key: string
@@ -47,6 +49,18 @@ const appMenuItems: AppMenuItem[] = [
     icon: <HomeOutlined />,
     label: '今日工作台',
     roles: ['ADMIN', 'PARENT'],
+  },
+  {
+    key: '/boss-dashboard',
+    icon: <BankOutlined />,
+    label: '老板驾驶舱',
+    roles: ['ADMIN'],
+  },
+  {
+    key: '/principal-workbench',
+    icon: <ClusterOutlined />,
+    label: '园长工作台',
+    roles: ['ADMIN'],
   },
   {
     key: '/growth-record',
@@ -109,10 +123,16 @@ const appMenuItems: AppMenuItem[] = [
     roles: ['PARENT', 'ADMIN'],
   },
   {
+    key: '/parent-applications',
+    icon: <FileTextOutlined />,
+    label: '我的申请',
+    roles: ['PARENT'],
+  },
+  {
     key: '/elder-mode',
     icon: <HeartOutlined />,
     label: '长辈模式',
-    roles: ['PARENT'],
+    roles: ['PARENT', 'ELDER'],
   },
   {
     key: '/family-management',
@@ -135,13 +155,62 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { currentBaby, currentFamily, families, loadFamilies } = useFamilyStore()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false)
-  const currentRole: UserRole = user?.role === 'ADMIN' ? 'ADMIN' : 'PARENT'
-  const roleLabel = currentRole === 'ADMIN' ? '园所工作台' : '家长工作台'
+  const [staffRoles, setStaffRoles] = useState<string[]>([])
+
+  const currentRole: UserRole = (user?.role as UserRole) || 'PARENT'
+  const roleLabel = currentRole === 'ADMIN' ? '园所工作台' : currentRole === 'ELDER' ? '长辈模式' : '家长工作台'
+
+  // 根据用户岗位角色过滤菜单
   const visibleMenuItems: MenuProps['items'] = appMenuItems
-    .filter((item) => item.roles.includes(currentRole))
+    .filter((item) => {
+      if (!item.roles.includes(currentRole)) return false
+      // ELDER 角色只显示长辈模式
+      if (currentRole === 'ELDER') {
+        return item.key === '/elder-mode'
+      }
+      // ADMIN 角色但只有 TEACHER/CAREGIVER 岗位时，限制部分菜单
+      if (currentRole === 'ADMIN' && staffRoles.length > 0) {
+        const isTeacher = staffRoles.includes('TEACHER')
+        const isCaregiver = staffRoles.includes('CAREGIVER')
+        const isDirector = staffRoles.includes('DIRECTOR')
+        const isHealthWorker = staffRoles.includes('HEALTH_WORKER') || staffRoles.includes('HEALTH_DOCTOR')
+        const isSafetyOfficer = staffRoles.includes('SAFETY_OFFICER') || staffRoles.includes('LOGISTICS_STAFF')
+        const isOperationsStaff = staffRoles.includes('OPERATIONS_STAFF') || staffRoles.includes('ADMISSIONS_OFFICER')
+        // 教师/保育员只能访问班级照护和日报管理
+        if ((isTeacher || isCaregiver) && !isDirector && !isSafetyOfficer && !isOperationsStaff) {
+          const teacherOnlyKeys = ['/teacher-workbench', '/daily-report-management', '/dashboard', '/profile']
+          return teacherOnlyKeys.includes(item.key)
+        }
+        // 保健员/保健医只能访问健康安全相关页面
+        if (isHealthWorker && !isDirector && !isSafetyOfficer && !isOperationsStaff) {
+          const healthWorkerKeys = ['/health-safety', '/daily-report-management', '/dashboard', '/profile']
+          return healthWorkerKeys.includes(item.key)
+        }
+        // 安全员/后勤人员只能访问健康安全和日报管理
+        if (isSafetyOfficer && !isDirector && !isHealthWorker) {
+          const safetyOfficerKeys = ['/health-safety', '/daily-report-management', '/dashboard', '/profile']
+          return safetyOfficerKeys.includes(item.key)
+        }
+        // 运营/招生人员只能访问运营监管、园所运营和日报管理
+        if (isOperationsStaff && !isDirector) {
+          const opsKeys = ['/operations-regulatory', '/organization-management', '/daily-report-management', '/dashboard', '/profile']
+          return opsKeys.includes(item.key)
+        }
+      }
+      return true
+    })
     .map(({ roles: _roles, ...item }) => item)
 
   useEffect(() => {
+    // 加载员工岗位信息（用于菜单权限过滤）
+    userStaffAPI.getMyStaffInfo()
+      .then((res: any) => {
+        const data = res?.data ?? res
+        const roles = (data?.staffInfos || []).map((s: any) => s.role)
+        setStaffRoles([...new Set<string>(roles)])
+      })
+      .catch(() => {})
+
     if (families.length > 0) return
 
     loadFamilies().catch(() => {

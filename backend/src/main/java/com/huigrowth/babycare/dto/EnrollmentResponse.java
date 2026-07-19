@@ -30,6 +30,13 @@ public class EnrollmentResponse {
     private String specialCareNotes;
     private String emergencyContactName;
     private String emergencyContactPhone;
+    private Boolean parentConfirmed;
+    private LocalDateTime parentConfirmedAt;
+
+    // 宝宝补充信息
+    private String babyIdCard;
+    private String babyBirthCertificateNo;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

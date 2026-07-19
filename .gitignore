@@ -63,3 +63,5 @@ mvnw.cmd
 *.nar
 
 .history/
+*__pycache__*
+.github/

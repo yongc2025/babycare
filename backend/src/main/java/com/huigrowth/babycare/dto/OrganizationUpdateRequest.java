@@ -39,5 +39,14 @@ public class OrganizationUpdateRequest {
     @Size(max = 50, message = "运营类型长度不能超过50个字符")
     private String operationType;
 
+    private Long orgGroupId;
+
+    private Long parentId;
+
+    private String orgType;
+
     private String status;
+
+    /** 日报是否需要园长审核 */
+    private Boolean dailyReportApprovalRequired;
 }

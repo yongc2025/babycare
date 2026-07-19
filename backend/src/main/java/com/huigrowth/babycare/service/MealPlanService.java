@@ -2,8 +2,10 @@ package com.huigrowth.babycare.service;
 
 import com.huigrowth.babycare.dto.MealIntakeRequest;
 import com.huigrowth.babycare.dto.MealIntakeResponse;
+import com.huigrowth.babycare.dto.MealNutritionAnalysisResponse;
 import com.huigrowth.babycare.dto.MealPlanRequest;
 import com.huigrowth.babycare.dto.MealPlanResponse;
+import com.huigrowth.babycare.dto.MealNutritionAnalysisResponse.MealIntakeStats;
 import com.huigrowth.babycare.entity.Enrollment;
 import com.huigrowth.babycare.entity.MealIntakeRecord;
 import com.huigrowth.babycare.entity.MealPlan;
@@ -126,6 +128,59 @@ public class MealPlanService {
         return intakeRecordRepository.findByEnrollmentOrderByCreatedAtDesc(enrollment).stream()
                 .map(this::convertIntake)
                 .collect(Collectors.toList());
+    }
+
+    public MealNutritionAnalysisResponse getNutritionAnalysis(String username, Long organizationId, LocalDate startDate, LocalDate endDate) {
+        User operator = getUser(username);
+        Organization organization = getOwnedOrganization(operator, organizationId);
+        if (startDate == null) startDate = LocalDate.now().minusDays(7);
+        if (endDate == null) endDate = LocalDate.now();
+        if (startDate.isAfter(endDate)) {
+            throw new BusinessException("开始日期不能晚于结束日期");
+        }
+
+        List<MealPlan> meals = mealPlanRepository.findByOrganizationAndMealDateBetweenOrderByMealDateAscMealTypeAsc(
+                organization, startDate, endDate);
+
+        MealNutritionAnalysisResponse response = new MealNutritionAnalysisResponse();
+        response.setTotalMeals(meals.size());
+
+        List<MealIntakeStats> mealStats = meals.stream().map(meal -> {
+            List<MealIntakeRecord> intakes = intakeRecordRepository.findByMealPlanOrderByCreatedAtDesc(meal);
+            MealIntakeStats stats = new MealIntakeStats();
+            stats.setMealPlanId(meal.getId());
+            stats.setMealDate(meal.getMealDate());
+            stats.setMealType(meal.getMealType().name());
+            stats.setMealTypeDescription(meal.getMealType().getDescription());
+            stats.setTitle(meal.getTitle());
+            stats.setFoodItems(meal.getFoodItems());
+            stats.setAllergenNotes(meal.getAllergenNotes());
+            stats.setTotalBabies(intakes.size());
+            stats.setAllCount((int) intakes.stream().filter(r -> r.getIntakeLevel() == MealIntakeRecord.IntakeLevel.ALL).count());
+            stats.setMostCount((int) intakes.stream().filter(r -> r.getIntakeLevel() == MealIntakeRecord.IntakeLevel.MOST).count());
+            stats.setHalfCount((int) intakes.stream().filter(r -> r.getIntakeLevel() == MealIntakeRecord.IntakeLevel.HALF).count());
+            stats.setLessCount((int) intakes.stream().filter(r -> r.getIntakeLevel() == MealIntakeRecord.IntakeLevel.LESS).count());
+            stats.setNoneCount((int) intakes.stream().filter(r -> r.getIntakeLevel() == MealIntakeRecord.IntakeLevel.NONE).count());
+            stats.setAllergyCount((int) intakes.stream().filter(MealIntakeRecord::getAllergyReaction).count());
+
+            // Calculate weighted average intake rate
+            int totalScore = stats.getAllCount() * 100 + stats.getMostCount() * 75
+                    + stats.getHalfCount() * 50 + stats.getLessCount() * 25;
+            stats.setAvgIntakeRate(intakes.isEmpty() ? 0 : Math.round((double) totalScore / intakes.size() * 10.0) / 10.0);
+
+            return stats;
+        }).collect(Collectors.toList());
+
+        response.setMealStats(mealStats);
+        response.setTotalIntakeRecords(mealStats.stream().mapToInt(MealIntakeStats::getTotalBabies).sum());
+        response.setTotalBabies((int) meals.stream()
+                .flatMap(m -> intakeRecordRepository.findByMealPlanOrderByCreatedAtDesc(m).stream())
+                .map(r -> r.getEnrollment().getId())
+                .distinct()
+                .count());
+        response.setAllergyEventCount(mealStats.stream().mapToInt(MealIntakeStats::getAllergyCount).sum());
+
+        return response;
     }
 
     private void applyMealPlanFields(MealPlan mealPlan, MealPlanRequest request) {

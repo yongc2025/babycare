@@ -22,6 +22,7 @@ import com.huigrowth.babycare.repository.OrganizationRepository;
 import com.huigrowth.babycare.repository.PickupDelegationRepository;
 import com.huigrowth.babycare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PickupService {
@@ -153,6 +155,73 @@ public class PickupService {
         delegation.setReviewedAt(LocalDateTime.now());
         delegation.setReviewRemark(request.getReviewRemark());
         return convertDelegation(pickupDelegationRepository.save(delegation));
+    }
+
+    @Transactional
+    public PickupDelegationResponse cancelDelegation(String username, Long delegationId, String reason) {
+        User operator = getUser(username);
+        PickupDelegation delegation = pickupDelegationRepository.findById(delegationId)
+                .orElseThrow(() -> new BusinessException("委托接送不存在"));
+        if (!delegation.getRequestedBy().getId().equals(operator.getId())) {
+            throw new BusinessException("您无权取消该委托接送");
+        }
+        if (delegation.getStatus() != PickupDelegation.DelegationStatus.PENDING) {
+            throw new BusinessException("仅待审核的委托接送可以取消");
+        }
+        delegation.setStatus(PickupDelegation.DelegationStatus.CANCELLED);
+        delegation.setReviewRemark(reason);
+        log.info("用户 {} 取消委托接送 {}", username, delegationId);
+        return convertDelegation(pickupDelegationRepository.save(delegation));
+    }
+
+    // ========== 长辈接送确认（T073） ==========
+
+    /**
+     * 长辈确认接送委托（需拥有 canConfirmPickup 权限）
+     */
+    @Transactional
+    public PickupDelegationResponse elderConfirmDelegation(String username, Long delegationId) {
+        User operator = getUser(username);
+
+        // 检查长辈是否有接送确认权限
+        boolean hasPickupPermission = familyMemberRepository.findByUser(operator).stream()
+                .anyMatch(fm -> Boolean.TRUE.equals(fm.getCanConfirmPickup()));
+        if (!hasPickupPermission) {
+            throw new BusinessException("您没有被授权确认接送");
+        }
+
+        PickupDelegation delegation = pickupDelegationRepository.findById(delegationId)
+                .orElseThrow(() -> new BusinessException("委托接送不存在"));
+
+        // 检查长辈是否与该委托关联（需通过家庭成员关系访问宝宝）
+        Baby baby = delegation.getEnrollment().getBaby();
+        boolean isFamilyMember = familyMemberRepository.findByUser(operator).stream()
+                .anyMatch(fm -> fm.getFamily().getId().equals(baby.getFamily().getId()));
+        if (!isFamilyMember) {
+            throw new BusinessException("您无法确认该接送委托");
+        }
+
+        if (delegation.getStatus() != PickupDelegation.DelegationStatus.PENDING
+                && delegation.getStatus() != PickupDelegation.DelegationStatus.APPROVED) {
+            throw new BusinessException("仅待审核或已通过的委托可以确认");
+        }
+
+        delegation.setReviewRemark("长辈已确认接送");
+        delegation.setReviewedBy(operator);
+        delegation.setReviewedAt(LocalDateTime.now());
+        if (delegation.getStatus() == PickupDelegation.DelegationStatus.PENDING) {
+            delegation.setStatus(PickupDelegation.DelegationStatus.APPROVED);
+        }
+
+        log.info("长辈 {} 确认接送委托 {}", username, delegationId);
+        return convertDelegation(pickupDelegationRepository.save(delegation));
+    }
+
+    public List<PickupDelegationResponse> getMyDelegations(String username) {
+        User operator = getUser(username);
+        return pickupDelegationRepository.findByRequestedByOrderByCreatedAtDesc(operator).stream()
+                .map(this::convertDelegation)
+                .collect(Collectors.toList());
     }
 
     public List<PickupDelegationResponse> getBabyDelegations(String username, Long babyId) {

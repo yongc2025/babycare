@@ -83,6 +83,7 @@ public class User extends BaseEntity implements UserDetails {
      */
     public enum UserRole {
         PARENT("家长"),
+        ELDER("长辈"),
         ADMIN("管理员");
 
         private final String description;

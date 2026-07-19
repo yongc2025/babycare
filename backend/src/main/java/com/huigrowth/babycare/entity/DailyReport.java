@@ -77,8 +77,21 @@ public class DailyReport extends BaseEntity {
     @JoinColumn(name = "published_by")
     private User publishedBy;
 
+    /** 审核意见（驳回原因） */
+    @Size(max = 500, message = "审核意见不能超过500个字符")
+    @Column(name = "review_comment", length = 500, columnDefinition = "VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String reviewComment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
     public enum ReportStatus {
         DRAFT("草稿"),
+        PENDING_APPROVAL("待审核"),
         PUBLISHED("已发布");
 
         private final String description;

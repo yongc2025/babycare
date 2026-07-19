@@ -13,6 +13,21 @@
   min-width: 240px;
 }
 
+.health-summary-cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.health-summary-card {
+  flex: 1;
+  min-width: 140px;
+}
+
+.health-summary-card .ant-statistic-title {
+  font-size: 13px;
+}
+
 @media (max-width: 640px) {
   .health-select {
     width: 100%;

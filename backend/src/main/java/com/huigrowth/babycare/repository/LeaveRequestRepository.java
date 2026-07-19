@@ -6,6 +6,7 @@ import com.huigrowth.babycare.entity.LeaveRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import com.huigrowth.babycare.entity.User;
 import java.util.List;
 
 /**
@@ -17,4 +18,6 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     List<LeaveRequest> findByEnrollmentClassroomOrderByCreatedAtDesc(Classroom classroom);
 
     List<LeaveRequest> findByEnrollmentBabyOrderByCreatedAtDesc(Baby baby);
+
+    List<LeaveRequest> findByRequestedByOrderByCreatedAtDesc(User requestedBy);
 }

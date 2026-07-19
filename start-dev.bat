@@ -7,6 +7,7 @@ cd /d "%ROOT_DIR%"
 
 set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot"
 set "MAVEN_HOME=C:\tools\apache-maven-3.9.16"
+set "MAVEN_OPTS=-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8"
 
 if exist "%JAVA_HOME%\bin\java.exe" (
     set "PATH=%JAVA_HOME%\bin;%PATH%"
@@ -94,14 +95,24 @@ if errorlevel 1 (
 )
 echo OK: backend compile succeeded.
 
-echo Starting backend service...
-start "BabyCare Backend" cmd /k call "%BACKEND_RUNNER%"
+call :is_port_busy 8080
+if errorlevel 1 (
+    echo Backend port 8080 is already in use. Skip starting another backend.
+) else (
+    echo Starting backend service...
+    start "BabyCare Backend" cmd /k call "%BACKEND_RUNNER%"
+)
 
 echo Waiting for backend startup...
 timeout /t 15 /nobreak >nul
 
-echo Starting frontend service...
-start "BabyCare Frontend" cmd /k call "%FRONTEND_RUNNER%"
+call :is_port_busy 3001
+if errorlevel 1 (
+    echo Frontend port 3001 is already in use. Skip starting another frontend.
+) else (
+    echo Starting frontend service...
+    start "BabyCare Frontend" cmd /k call "%FRONTEND_RUNNER%"
+)
 
 echo Waiting for frontend startup...
 timeout /t 10 /nobreak >nul
@@ -127,11 +138,12 @@ exit /b 0
     echo @echo off
     echo chcp 65001 ^>nul
     echo set "JAVA_HOME=%JAVA_HOME%"
+    echo set "MAVEN_OPTS=%MAVEN_OPTS%"
     echo set "PATH=%JAVA_HOME%\bin;%MAVEN_HOME%\bin;%%PATH%%"
     echo cd /d "%ROOT_DIR%backend"
     echo echo Starting BabyCare Backend...
     echo echo Backend log: "%ROOT_DIR%logs\backend.log"
-    echo call "%MVN_CMD%" spring-boot:run -Dspring-boot.run.profiles=dev ^> "%ROOT_DIR%logs\backend.log" 2^>^&1
+    echo call "%MVN_CMD%" spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.jvmArguments="-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8" ^> "%ROOT_DIR%logs\backend.log" 2^>^&1
     echo echo.
     echo echo Backend process exited. Check "%ROOT_DIR%logs\backend.log".
     echo pause
@@ -149,3 +161,8 @@ exit /b 0
     echo pause
 ) > "%FRONTEND_RUNNER%"
 exit /b 0
+
+:is_port_busy
+netstat -ano | findstr /R /C:":%~1 .*LISTENING" >nul 2>&1
+if errorlevel 1 exit /b 0
+exit /b 1

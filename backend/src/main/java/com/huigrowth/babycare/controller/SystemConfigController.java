@@ -1,5 +1,6 @@
 package com.huigrowth.babycare.controller;
 
+import com.huigrowth.babycare.aspect.AuditLogAnnotation;
 import com.huigrowth.babycare.dto.SystemConfigResponse;
 import com.huigrowth.babycare.dto.SystemConfigUpdateRequest;
 import com.huigrowth.babycare.service.SystemConfigService;
@@ -17,7 +18,7 @@ import java.util.List;
  */
 @Tag(name = "系统配置", description = "系统配置管理接口")
 @RestController
-@RequestMapping("/api/admin/config")
+@RequestMapping("/admin/config")
 @RequiredArgsConstructor
 public class SystemConfigController {
 
@@ -35,6 +36,7 @@ public class SystemConfigController {
         return ApiResponse.success(systemConfigService.getByKey(configKey));
     }
 
+    @AuditLogAnnotation(action = "UPDATE_SYSTEM_CONFIG", actionName = "更新系统配置", targetType = "SystemConfig")
     @Operation(summary = "更新配置")
     @PutMapping("/{configKey}")
     public ApiResponse<SystemConfigResponse> update(@PathVariable String configKey,

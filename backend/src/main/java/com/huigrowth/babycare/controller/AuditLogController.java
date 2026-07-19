@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  */
 @Tag(name = "审计日志", description = "审计日志查询接口")
 @RestController
-@RequestMapping("/api/admin/audit-log")
+@RequestMapping("/admin/audit-log")
 @RequiredArgsConstructor
 public class AuditLogController {
 

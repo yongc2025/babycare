@@ -10,7 +10,10 @@ export interface AuthAPI {
   changePassword: (data: { oldPassword: string; newPassword: string }) => Promise<ApiResponse>
   sendVerificationCode: (phone: string) => Promise<ApiResponse>
   verifyPhone: (phone: string, code: string) => Promise<ApiResponse>
+  phoneLogin: (data: { phone: string; password?: string; code?: string }) => Promise<ApiResponse<{ user: User; token: string }>>
   resetPassword: (email: string) => Promise<ApiResponse>
+  weChatLogin?: (data: { code: string }) => Promise<ApiResponse>
+  weChatPhone?: (data: { code: string; encryptedData: string; iv: string }) => Promise<ApiResponse>
 }
 
 // 认证相关API
@@ -47,7 +50,17 @@ export const authAPI: AuthAPI = {
   verifyPhone: (phone: string, code: string) =>
     request.post('/auth/verify-phone', { phone, code }),
 
+  // 手机号登录
+  phoneLogin: (data: { phone: string; password?: string; code?: string }) =>
+    request.post('/auth/phone-login', data),
+
   // 重置密码
   resetPassword: (email: string) =>
     request.post('/auth/reset-password', { email }),
+
+  // ========== 微信登录预留（T080） ==========
+  weChatLogin: (data: { code: string }) =>
+    request.post('/wechat/mini-program/login', data),
+  weChatPhone: (data: { code: string; encryptedData: string; iv: string }) =>
+    request.post('/wechat/mini-program/phone', data),
 }

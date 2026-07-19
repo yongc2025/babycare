@@ -32,4 +32,7 @@ public class CareRecordUpdateRequest {
 
     @Size(max = 30, message = "数据来源不能超过30个字符")
     private String source;
+
+    @Size(max = 300, message = "补录原因不能超过300个字符")
+    private String backfillReason;
 }

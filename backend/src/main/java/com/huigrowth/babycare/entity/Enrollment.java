@@ -16,6 +16,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 宝宝入托档案实体
@@ -73,10 +74,46 @@ public class Enrollment extends BaseEntity {
     @Column(name = "emergency_contact_phone", length = 20, columnDefinition = "VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String emergencyContactPhone;
 
+    // 家长资料补充确认（T076）
+    @Column(name = "parent_confirmed", nullable = false)
+    private Boolean parentConfirmed = false;
+
+    @Column(name = "parent_confirmed_at")
+    private LocalDateTime parentConfirmedAt;
+
+    // 审核相关
+    @Column(name = "reviewed_by")
+    private Long reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Size(max = 300, message = "驳回原因不能超过300个字符")
+    @Column(name = "reject_reason", length = 300, columnDefinition = "VARCHAR(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String rejectReason;
+
+    // 退托相关
+    @Column(name = "withdrawn_at")
+    private LocalDate withdrawnAt;
+
+    @Size(max = 300, message = "退托原因不能超过300个字符")
+    @Column(name = "withdraw_reason", length = 300, columnDefinition = "VARCHAR(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String withdrawReason;
+
+    // 转班记录
+    @Column(name = "previous_classroom_id")
+    private Long previousClassroomId;
+
+    @Size(max = 300, message = "转班原因不能超过300个字符")
+    @Column(name = "transfer_reason", length = 300, columnDefinition = "VARCHAR(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+    private String transferReason;
+
     public enum EnrollmentStatus {
         PENDING("待入托"),
+        HEALTH_CHECK("保健审核中"),
         ACTIVE("在托"),
         SUSPENDED("暂停"),
+        REJECTED("已驳回"),
         WITHDRAWN("退托");
 
         private final String description;

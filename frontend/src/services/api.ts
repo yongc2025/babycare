@@ -17,6 +17,8 @@ import type {
   HardwareEventIngestForm,
   HardwareEventStatusForm,
   AllergyTagForm,
+  InfectiousDiseaseCreateForm,
+  InfectiousDiseaseUpdateForm,
   LeaveRequestForm,
   LeaveReviewForm,
   MealIntakeForm,
@@ -30,7 +32,10 @@ import type {
   AnnouncementUpdateForm,
   BillingPaymentForm,
   BillingStatementForm,
+  BossDashboard,
   DirectorDashboard,
+  DirectorWorkbench,
+  UserStaffInfo,
   FeeItemForm,
   PickupDelegationForm,
   PickupDelegationReviewForm,
@@ -39,6 +44,7 @@ import type {
   RegulatoryReport,
   SafetyLedgerForm,
   SafetyLedgerHandleForm,
+  SafetyLedgerTemplateForm,
 } from '@/types'
 
 export { request, uploadFile, uploadFiles }
@@ -99,6 +105,12 @@ export const dailyReportAPI = {
     request.put(`/daily-report/${reportId}`, data),
   publishReport: (reportId: number | string) =>
     request.post(`/daily-report/${reportId}/publish`),
+  submitForReview: (reportId: number | string) =>
+    request.post(`/daily-report/${reportId}/submit`),
+  approveReport: (reportId: number | string) =>
+    request.post(`/daily-report/${reportId}/approve`),
+  rejectReport: (reportId: number | string, reason: string) =>
+    request.post(`/daily-report/${reportId}/reject`, { reason }),
   getBabyReport: (babyId: number | string, date?: string) => {
     const query = date ? `?date=${date}` : ''
     return request.get(`/daily-report/baby/${babyId}${query}`)
@@ -152,6 +164,10 @@ export const pickupAPI = {
     const query = date ? `?date=${date}` : ''
     return request.get(`/pickup/delegation/classroom/${classroomId}${query}`)
   },
+
+  // ========== 长辈接送确认（T073） ==========
+  elderConfirmDelegation: (delegationId: number | string) =>
+    request.post(`/pickup/delegation/${delegationId}/elder-confirm`),
 }
 
 export const medicationCareAPI = {
@@ -218,12 +234,29 @@ export const billingAPI = {
     request.get(`/billing/bill/organization/${organizationId}`),
   getBabyBills: (babyId: number | string) =>
     request.get(`/billing/bill/baby/${babyId}`),
+  getFinanceWorkbench: (organizationId: number | string) =>
+    request.get(`/billing/finance-workbench/${organizationId}`),
 }
 
 export const directorDashboardAPI = {
   getOrganizationOverview: (organizationId: number | string, date?: string) => {
     const query = date ? `?date=${date}` : ''
     return request.get<DirectorDashboard>(`/director-dashboard/organization/${organizationId}${query}`)
+  },
+  getWorkbench: (organizationId: number | string) => {
+    return request.get<DirectorWorkbench>(`/director-dashboard/workbench/${organizationId}`)
+  },
+}
+
+export const userStaffAPI = {
+  getMyStaffInfo: () => {
+    return request.get<UserStaffInfo>('/user/my-staff-info')
+  },
+}
+
+export const bossDashboardAPI = {
+  getOverview: () => {
+    return request.get<BossDashboard>('/api/boss/dashboard/overview')
   },
 }
 
@@ -242,6 +275,21 @@ export const admissionLeadAPI = {
     return request.get(`/admission-lead/organization/${organizationId}${query}`)
   },
   getLeadDetail: (leadId: number | string) => request.get(`/admission-lead/${leadId}`),
+  addFollowUp: (leadId: number | string, data: any) =>
+    request.post(`/admission-lead/${leadId}/follow-up`, data),
+  getFollowUps: (leadId: number | string) =>
+    request.get(`/admission-lead/${leadId}/follow-ups`),
+  getFunnelStats: (organizationId: number | string) =>
+    request.get(`/admission-lead/funnel/${organizationId}`),
+  convertToEnrollment: (leadId: number | string, data: {
+    classroomId: number | string
+    enrolledAt?: string
+    allergyNotes?: string
+    medicalNotes?: string
+    specialCareNotes?: string
+    emergencyContactName?: string
+    emergencyContactPhone?: string
+  }) => request.post(`/admission-lead/${leadId}/convert`, data),
 }
 
 export const mealPlanAPI = {
@@ -266,6 +314,31 @@ export const mealPlanAPI = {
     request.get(`/meal-plan/${mealPlanId}/intakes`),
   getEnrollmentIntakes: (enrollmentId: number | string) =>
     request.get(`/meal-plan/intake/enrollment/${enrollmentId}`),
+  getNutritionAnalysis: (
+    organizationId: number | string,
+    options?: { startDate?: string; endDate?: string },
+  ) => {
+    const params = new URLSearchParams()
+    if (options?.startDate) params.set('startDate', options.startDate)
+    if (options?.endDate) params.set('endDate', options.endDate)
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return request.get(`/meal-plan/analysis/organization/${organizationId}${query}`)
+  },
+}
+
+export const infectiousDiseaseAPI = {
+  createRecord: (data: InfectiousDiseaseCreateForm) =>
+    request.post('/infectious-disease/create', data),
+  updateRecord: (recordId: number | string, data: InfectiousDiseaseUpdateForm) =>
+    request.put(`/infectious-disease/${recordId}`, data),
+  getClassroomRecords: (classroomId: number | string) =>
+    request.get(`/infectious-disease/classroom/${classroomId}`),
+  getOrganizationRecords: (organizationId: number | string) =>
+    request.get(`/infectious-disease/organization/${organizationId}`),
+  getRecordDetail: (recordId: number | string) =>
+    request.get(`/infectious-disease/${recordId}`),
+  getActiveCount: (organizationId: number | string) =>
+    request.get(`/infectious-disease/organization/${organizationId}/active-count`),
 }
 
 export const safetyLedgerAPI = {
@@ -289,6 +362,21 @@ export const safetyLedgerAPI = {
     return request.get(`/safety-ledger/organization/${organizationId}${query}`)
   },
   getLedgerDetail: (ledgerId: number | string) => request.get(`/safety-ledger/${ledgerId}`),
+  // 台账模板
+  createTemplate: (data: SafetyLedgerTemplateForm) => request.post('/safety-ledger/template/create', data),
+  updateTemplate: (templateId: number | string, data: SafetyLedgerTemplateForm) =>
+    request.put(`/safety-ledger/template/${templateId}`, data),
+  deleteTemplate: (templateId: number | string) =>
+    request.post(`/safety-ledger/template/${templateId}/delete`),
+  getOrganizationTemplates: (organizationId: number | string) =>
+    request.get(`/safety-ledger/template/organization/${organizationId}`),
+  // 周期任务生成与逾期检测
+  generateTasks: (organizationId: number | string) =>
+    request.post(`/safety-ledger/generate-tasks/${organizationId}`),
+  checkOverdue: (organizationId: number | string) =>
+    request.post(`/safety-ledger/check-overdue/${organizationId}`),
+  getOverdueCount: (organizationId: number | string) =>
+    request.get(`/safety-ledger/overdue-count/${organizationId}`),
 }
 
 export const regulatoryReportAPI = {

@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, DatePicker, Empty, List, Skeleton, Space, Switch, Tag, Typography } from 'antd'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, Button, DatePicker, Empty, List, message, Skeleton, Space, Switch, Tag, Typography } from 'antd'
 import {
   CalendarOutlined,
   CheckCircleOutlined,
+  CheckOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
   PhoneOutlined,
@@ -66,6 +67,8 @@ const ElderMode: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [confirmingDelegationId, setConfirmingDelegationId] = useState<string | null>(null)
+
   const dateText = useMemo(() => selectedDate.format('YYYY-MM-DD'), [selectedDate])
   const todayAttendance = useMemo(
     () => getTodayAttendance(attendanceRecords, dateText),
@@ -75,6 +78,21 @@ const ElderMode: React.FC = () => {
     () => getTodayDelegations(pickupDelegations, dateText),
     [pickupDelegations, dateText],
   )
+
+  const handleConfirmDelegation = useCallback(async (delegationId: string) => {
+    setConfirmingDelegationId(delegationId)
+    try {
+      await pickupAPI.elderConfirmDelegation(delegationId)
+      message.success('已确认该接送委托')
+      // 刷新列表
+      const updated = await pickupAPI.getBabyDelegations(currentBaby!.id)
+      setPickupDelegations(Array.isArray(updated) ? updated : updated?.data || [])
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || err.message || '确认失败')
+    } finally {
+      setConfirmingDelegationId(null)
+    }
+  }, [currentBaby])
 
   useEffect(() => {
     loadFamilies().catch(() => {
@@ -234,6 +252,17 @@ const ElderMode: React.FC = () => {
                           </Space>
                         }
                       />
+                      {(item.status === 'PENDING' || item.status === 'APPROVED') && (
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={confirmingDelegationId === item.id ? undefined : <CheckOutlined />}
+                          loading={confirmingDelegationId === item.id}
+                          onClick={() => handleConfirmDelegation(item.id)}
+                        >
+                          确认接送
+                        </Button>
+                      )}
                     </List.Item>
                   )}
                 />

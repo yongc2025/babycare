@@ -5,15 +5,20 @@ import com.huigrowth.babycare.dto.BillingStatementCreateRequest;
 import com.huigrowth.babycare.dto.BillingStatementResponse;
 import com.huigrowth.babycare.dto.FeeItemRequest;
 import com.huigrowth.babycare.dto.FeeItemResponse;
+import com.huigrowth.babycare.dto.FinanceWorkbenchResponse;
 import com.huigrowth.babycare.entity.Baby;
+import com.huigrowth.babycare.entity.AdmissionLead;
 import com.huigrowth.babycare.entity.BillingStatement;
 import com.huigrowth.babycare.entity.Enrollment;
+import com.huigrowth.babycare.entity.EnrollmentGuardian;
 import com.huigrowth.babycare.entity.FeeItem;
 import com.huigrowth.babycare.entity.Organization;
 import com.huigrowth.babycare.entity.User;
 import com.huigrowth.babycare.exception.BusinessException;
+import com.huigrowth.babycare.repository.AdmissionLeadRepository;
 import com.huigrowth.babycare.repository.BabyRepository;
 import com.huigrowth.babycare.repository.BillingStatementRepository;
+import com.huigrowth.babycare.repository.EnrollmentGuardianRepository;
 import com.huigrowth.babycare.repository.EnrollmentRepository;
 import com.huigrowth.babycare.repository.FamilyMemberRepository;
 import com.huigrowth.babycare.repository.FeeItemRepository;
@@ -35,8 +40,10 @@ public class BillingService {
 
     private final FeeItemRepository feeItemRepository;
     private final BillingStatementRepository billingRepository;
+    private final AdmissionLeadRepository admissionLeadRepository;
     private final OrganizationRepository organizationRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final EnrollmentGuardianRepository enrollmentGuardianRepository;
     private final BabyRepository babyRepository;
     private final UserRepository userRepository;
     private final FamilyMemberRepository familyMemberRepository;
@@ -134,6 +141,20 @@ public class BillingService {
                 .collect(Collectors.toList());
     }
 
+    public List<BillingStatementResponse> getMyBills(String username) {
+        User operator = getUser(username);
+        List<EnrollmentGuardian> guardians = enrollmentGuardianRepository.findByGuardianUserOrderByCreatedAtDesc(operator);
+        List<Enrollment> enrollments = guardians.stream()
+                .map(EnrollmentGuardian::getEnrollment)
+                .collect(Collectors.toList());
+        if (enrollments.isEmpty()) {
+            return List.of();
+        }
+        return billingRepository.findByEnrollmentInOrderByCreatedAtDesc(enrollments).stream()
+                .map(this::convertBill)
+                .collect(Collectors.toList());
+    }
+
     public List<BillingStatementResponse> getBabyBills(String username, Long babyId) {
         User operator = getUser(username);
         Baby baby = babyRepository.findById(babyId)
@@ -145,6 +166,45 @@ public class BillingService {
         return billingRepository.findByEnrollmentBabyOrderByCreatedAtDesc(baby).stream()
                 .map(this::convertBill)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 财务运营工作台聚合数据。
+     */
+    public FinanceWorkbenchResponse getFinanceWorkbench(String username, Long organizationId) {
+        User operator = getUser(username);
+        Organization organization = getOwnedOrganization(operator, organizationId);
+        FinanceWorkbenchResponse response = new FinanceWorkbenchResponse();
+        // 账单统计
+        long unpaidCount = billingRepository.countByOrganizationAndStatus(organization, BillingStatement.BillingStatus.UNPAID);
+        long paidCount = billingRepository.countByOrganizationAndStatus(organization, BillingStatement.BillingStatus.PAID);
+        long cancelledCount = billingRepository.countByOrganizationAndStatus(organization, BillingStatement.BillingStatus.CANCELLED);
+        response.setTotalBillCount(unpaidCount + paidCount + cancelledCount);
+        response.setPaidBillCount(paidCount);
+        response.setUnpaidBillCount(unpaidCount);
+        response.setTotalRevenue(billingRepository.sumAmountByOrganizationAndStatus(organization, BillingStatement.BillingStatus.PAID));
+        response.setUnpaidAmount(billingRepository.sumAmountByOrganizationAndStatus(organization, BillingStatement.BillingStatus.UNPAID));
+        response.setOverdueBillCount(0);
+        // 招生转化
+        response.setTotalLeadCount(
+                (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.NEW)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.FOLLOWING)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.APPLIED)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.APPROVED)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.TRIALING)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.TRIAL_COMPLETED)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.ENROLLED)
+                + (int) admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.LOST));
+        response.setNewLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.NEW));
+        response.setFollowingLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.FOLLOWING));
+        response.setAppliedLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.APPLIED));
+        response.setApprovedLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.APPROVED));
+        response.setTrialingLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.TRIALING));
+        response.setEnrolledLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.ENROLLED));
+        response.setLostLeadCount(admissionLeadRepository.countByOrganizationAndStatus(organization, AdmissionLead.LeadStatus.LOST));
+        // 收费项目
+        response.setActiveFeeItemCount(feeItemRepository.countByOrganizationAndStatus(organization, FeeItem.FeeItemStatus.ACTIVE));
+        return response;
     }
 
     private BillingStatement getOwnedBill(User operator, Long billId) {

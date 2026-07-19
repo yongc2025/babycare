@@ -196,6 +196,30 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public LeaveRequestResponse cancelLeaveRequest(String username, Long leaveRequestId, String reason) {
+        User operator = getUser(username);
+        LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveRequestId)
+                .orElseThrow(() -> new BusinessException("请假申请不存在"));
+        if (!leaveRequest.getRequestedBy().getId().equals(operator.getId())) {
+            throw new BusinessException("您无权取消该请假申请");
+        }
+        if (leaveRequest.getStatus() != LeaveRequest.LeaveStatus.PENDING) {
+            throw new BusinessException("仅待审核的请假申请可以取消");
+        }
+        leaveRequest.setStatus(LeaveRequest.LeaveStatus.CANCELLED);
+        leaveRequest.setReviewRemark(reason);
+        log.info("用户 {} 取消请假申请 {}", username, leaveRequestId);
+        return convertLeave(leaveRequestRepository.save(leaveRequest));
+    }
+
+    public List<LeaveRequestResponse> getMyLeaveRequests(String username) {
+        User operator = getUser(username);
+        return leaveRequestRepository.findByRequestedByOrderByCreatedAtDesc(operator).stream()
+                .map(this::convertLeave)
+                .collect(Collectors.toList());
+    }
+
     public List<LeaveRequestResponse> getBabyLeaveRequests(String username, Long babyId) {
         User operator = getUser(username);
         Baby baby = getAccessibleBabyForAttendance(operator, babyId);

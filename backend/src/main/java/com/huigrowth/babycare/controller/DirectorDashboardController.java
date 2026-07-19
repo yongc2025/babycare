@@ -1,6 +1,7 @@
 package com.huigrowth.babycare.controller;
 
 import com.huigrowth.babycare.dto.DirectorDashboardResponse;
+import com.huigrowth.babycare.dto.DirectorWorkbenchResponse;
 import com.huigrowth.babycare.service.DirectorDashboardService;
 import com.huigrowth.babycare.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +38,18 @@ public class DirectorDashboardController {
                 userDetails.getUsername(),
                 organizationId,
                 date);
+        return ApiResponse.success(response);
+    }
+
+    @Operation(summary = "园长工作台", description = "园长专属工作台：含概览、待办事项和风险预警")
+    @GetMapping("/workbench/{organizationId}")
+    public ApiResponse<DirectorWorkbenchResponse> getWorkbench(
+            Authentication authentication,
+            @PathVariable Long organizationId) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        DirectorWorkbenchResponse response = directorDashboardService.getWorkbench(
+                userDetails.getUsername(),
+                organizationId);
         return ApiResponse.success(response);
     }
 }

@@ -2,6 +2,7 @@ package com.huigrowth.babycare.repository;
 
 import com.huigrowth.babycare.entity.DataDict;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,5 +19,6 @@ public interface DataDictRepository extends JpaRepository<DataDict, Long> {
 
     boolean existsByDictTypeAndItemCode(String dictType, String itemCode);
 
+    @Query("SELECT DISTINCT d.dictType FROM DataDict d ORDER BY d.dictType")
     List<String> findDistinctDictTypeBy();
 }

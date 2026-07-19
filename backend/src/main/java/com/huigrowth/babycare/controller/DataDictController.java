@@ -1,5 +1,6 @@
 package com.huigrowth.babycare.controller;
 
+import com.huigrowth.babycare.aspect.AuditLogAnnotation;
 import com.huigrowth.babycare.dto.DataDictCreateRequest;
 import com.huigrowth.babycare.dto.DataDictResponse;
 import com.huigrowth.babycare.service.DataDictService;
@@ -17,7 +18,7 @@ import java.util.List;
  */
 @Tag(name = "数据字典", description = "数据字典管理接口")
 @RestController
-@RequestMapping("/api/admin/data-dict")
+@RequestMapping("/admin/data-dict")
 @RequiredArgsConstructor
 public class DataDictController {
 
@@ -35,18 +36,21 @@ public class DataDictController {
         return ApiResponse.success(dataDictService.listByType(dictType));
     }
 
+    @AuditLogAnnotation(action = "CREATE_DATA_DICT", actionName = "创建字典项", targetType = "DataDict")
     @Operation(summary = "创建字典项")
     @PostMapping
     public ApiResponse<DataDictResponse> create(@Valid @RequestBody DataDictCreateRequest request) {
         return ApiResponse.success("创建成功", dataDictService.create(request));
     }
 
+    @AuditLogAnnotation(action = "UPDATE_DATA_DICT", actionName = "更新字典项", targetType = "DataDict")
     @Operation(summary = "更新字典项")
     @PutMapping("/{id}")
     public ApiResponse<DataDictResponse> update(@PathVariable Long id, @Valid @RequestBody DataDictCreateRequest request) {
         return ApiResponse.success("更新成功", dataDictService.update(id, request));
     }
 
+    @AuditLogAnnotation(action = "DELETE_DATA_DICT", actionName = "删除字典项", targetType = "DataDict")
     @Operation(summary = "删除字典项")
     @DeleteMapping("/{id}")
     public ApiResponse<String> delete(@PathVariable Long id) {

@@ -31,7 +31,7 @@ public class Role extends BaseEntity {
     private RoleType type = RoleType.SYSTEM;
 
     @Column(name = "is_system", nullable = false)
-    private Boolean system = false;
+    private Boolean isSystem = false;
 
     @Column(name = "status", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)

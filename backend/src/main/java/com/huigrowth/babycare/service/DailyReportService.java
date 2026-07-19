@@ -10,6 +10,8 @@ import com.huigrowth.babycare.entity.Classroom;
 import com.huigrowth.babycare.entity.DailyReport;
 import com.huigrowth.babycare.entity.Enrollment;
 import com.huigrowth.babycare.entity.HealthObservation;
+import com.huigrowth.babycare.entity.Organization;
+import com.huigrowth.babycare.entity.Staff;
 import com.huigrowth.babycare.entity.User;
 import com.huigrowth.babycare.exception.BusinessException;
 import com.huigrowth.babycare.repository.AttendanceRecordRepository;
@@ -21,6 +23,7 @@ import com.huigrowth.babycare.repository.EnrollmentRepository;
 import com.huigrowth.babycare.repository.FamilyMemberRepository;
 import com.huigrowth.babycare.repository.HealthObservationRepository;
 import com.huigrowth.babycare.repository.OrganizationRepository;
+import com.huigrowth.babycare.repository.StaffRepository;
 import com.huigrowth.babycare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +51,7 @@ public class DailyReportService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final StaffRepository staffRepository;
 
     @Transactional
     public DailyReportResponse generateReport(String username, DailyReportGenerateRequest request) {
@@ -63,6 +67,8 @@ public class DailyReportService {
                     return dailyReport;
                 });
 
+        boolean isNewReport = report.getId() == null;
+
         List<CareRecord> careRecords = careRecordRepository
                 .findByEnrollmentAndRecordDateOrderByRecordTimeDesc(enrollment, reportDate);
         AttendanceRecord attendance = attendanceRecordRepository
@@ -71,7 +77,10 @@ public class DailyReportService {
         List<HealthObservation> healthObservations = healthObservationRepository
                 .findByEnrollmentAndObservationDateOrderByObservationTimeDesc(enrollment, reportDate);
 
-        report.setStatus(DailyReport.ReportStatus.DRAFT);
+        // 仅新创建的日报才重置为 DRAFT，已有日报不改变状态
+        if (isNewReport) {
+            report.setStatus(DailyReport.ReportStatus.DRAFT);
+        }
         report.setAttendanceSummary(buildAttendanceSummary(attendance));
         report.setCareSummary(buildCareSummary(careRecords));
         report.setHealthSummary(buildHealthSummary(careRecords, healthObservations));
@@ -96,6 +105,8 @@ public class DailyReportService {
                     return dailyReport;
                 });
 
+        boolean isNewReport = report.getId() == null;
+
         List<CareRecord> careRecords = careRecordRepository
                 .findByEnrollmentAndRecordDateOrderByRecordTimeDesc(enrollment, reportDate);
         AttendanceRecord attendance = attendanceRecordRepository
@@ -104,7 +115,10 @@ public class DailyReportService {
         List<HealthObservation> healthObservations = healthObservationRepository
                 .findByEnrollmentAndObservationDateOrderByObservationTimeDesc(enrollment, reportDate);
 
-        report.setStatus(DailyReport.ReportStatus.DRAFT);
+        // 仅新创建的草稿才重置为 DRAFT，已有发布的日报不改变状态
+        if (isNewReport) {
+            report.setStatus(DailyReport.ReportStatus.DRAFT);
+        }
         report.setAttendanceSummary(buildAttendanceSummary(attendance));
         report.setCareSummary(buildCareSummary(careRecords));
         report.setHealthSummary(buildHealthSummary(careRecords, healthObservations));
@@ -129,9 +143,57 @@ public class DailyReportService {
     public DailyReportResponse publishReport(String username, Long reportId) {
         User operator = getUser(username);
         DailyReport report = getOwnedReport(operator, reportId);
+        // 检查机构是否需要审核
+        Organization organization = report.getEnrollment().getOrganization();
+        if (Boolean.TRUE.equals(organization.getDailyReportApprovalRequired())) {
+            // 需要审核 → 改为待审核状态
+            report.setStatus(DailyReport.ReportStatus.PENDING_APPROVAL);
+        } else {
+            // 直接发布
+            report.setStatus(DailyReport.ReportStatus.PUBLISHED);
+            report.setPublishedAt(LocalDateTime.now());
+            report.setPublishedBy(operator);
+        }
+        return convert(dailyReportRepository.save(report));
+    }
+
+    @Transactional
+    public DailyReportResponse submitForReview(String username, Long reportId) {
+        User operator = getUser(username);
+        DailyReport report = getOwnedReport(operator, reportId);
+        if (report.getStatus() != DailyReport.ReportStatus.DRAFT) {
+            throw new BusinessException("只有草稿状态的日报可以提交审核");
+        }
+        report.setStatus(DailyReport.ReportStatus.PENDING_APPROVAL);
+        return convert(dailyReportRepository.save(report));
+    }
+
+    @Transactional
+    public DailyReportResponse approveReport(String username, Long reportId) {
+        User operator = getUser(username);
+        DailyReport report = getReportWithOrgCheck(operator, reportId);
+        if (report.getStatus() != DailyReport.ReportStatus.PENDING_APPROVAL) {
+            throw new BusinessException("只有待审核状态的日报可以审核通过");
+        }
         report.setStatus(DailyReport.ReportStatus.PUBLISHED);
         report.setPublishedAt(LocalDateTime.now());
         report.setPublishedBy(operator);
+        report.setReviewedBy(operator);
+        report.setReviewedAt(LocalDateTime.now());
+        return convert(dailyReportRepository.save(report));
+    }
+
+    @Transactional
+    public DailyReportResponse rejectReport(String username, Long reportId, String reason) {
+        User operator = getUser(username);
+        DailyReport report = getReportWithOrgCheck(operator, reportId);
+        if (report.getStatus() != DailyReport.ReportStatus.PENDING_APPROVAL) {
+            throw new BusinessException("只有待审核状态的日报可以驳回");
+        }
+        report.setStatus(DailyReport.ReportStatus.DRAFT);
+        report.setReviewComment(reason);
+        report.setReviewedBy(operator);
+        report.setReviewedAt(LocalDateTime.now());
         return convert(dailyReportRepository.save(report));
     }
 
@@ -291,6 +353,28 @@ public class DailyReportService {
         return report;
     }
 
+    /**
+     * 获取日报并校验审核权限（机构创建者和园长可审核）
+     */
+    private DailyReport getReportWithOrgCheck(User user, Long reportId) {
+        DailyReport report = dailyReportRepository.findById(reportId)
+                .orElseThrow(() -> new BusinessException("日报不存在"));
+        Long orgId = report.getEnrollment().getOrganization().getId();
+        if (!organizationRepository.existsByIdAndCreatedBy(orgId, user)) {
+            // 不是创建者，检查是否为该机构的园长
+            boolean isDirector = staffRepository.findByOrganizationAndRoleAndStatus(
+                    report.getEnrollment().getOrganization(),
+                    Staff.StaffRole.DIRECTOR,
+                    Staff.StaffStatus.ACTIVE)
+                    .stream()
+                    .anyMatch(s -> s.getUser().getId().equals(user.getId()));
+            if (!isDirector) {
+                throw new BusinessException("您无权审核该日报");
+            }
+        }
+        return report;
+    }
+
     private Enrollment getOwnedEnrollment(User user, Long enrollmentId) {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new BusinessException("入托档案不存在"));
@@ -374,6 +458,12 @@ public class DailyReportService {
             response.setPublishedById(report.getPublishedBy().getId());
             response.setPublishedByName(report.getPublishedBy().getNickname());
         }
+        response.setReviewComment(report.getReviewComment());
+        if (report.getReviewedBy() != null) {
+            response.setReviewedById(report.getReviewedBy().getId());
+            response.setReviewedByName(report.getReviewedBy().getNickname());
+        }
+        response.setReviewedAt(report.getReviewedAt());
         response.setCreatedAt(report.getCreatedAt());
         response.setUpdatedAt(report.getUpdatedAt());
         return response;

@@ -38,6 +38,17 @@ export const familyAPI = {
     data: { name: string; gender: 'MALE' | 'FEMALE'; birthday: string; avatar?: string },
   ) => request.post(`/family/${familyId}/babies`, data),
   getFamilyBabies: (familyId: number) => request.get(`/family/${familyId}/babies`),
+
+  // ========== 长辈授权管理（T073） ==========
+  updateMemberPermissions: (
+    familyId: number | string,
+    memberId: number | string,
+    data: {
+      nickname?: string
+      canConfirmPickup?: boolean
+      canConfirmNotification?: boolean
+    },
+  ) => request.put(`/family/${familyId}/members/${memberId}`, data),
 }
 
 export const familyPostAPI = {

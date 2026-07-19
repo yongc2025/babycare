@@ -1,13 +1,18 @@
-import React, { useEffect, useState } from 'react'
-import { Alert, Button, Card, DatePicker, Empty, Form, Input, List, Modal, Select, Space, Tag, Typography, message } from 'antd'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Alert, Button, Card, DatePicker, Empty, Form, Input, List, Modal, Select, Space, Switch, Tag, Typography, message } from 'antd'
 import {
   HomeOutlined,
   PlusOutlined,
+  SafetyCertificateOutlined,
+  SoundOutlined,
   TeamOutlined,
   UserAddOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 import { useFamilyStore } from '../../stores/familyStore'
+import { useAuthStore } from '../../stores/authStore'
+import { familyAPI } from '../../services/api'
+import type { FamilyMember } from '../../types'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -31,12 +36,42 @@ const FamilyManagement: React.FC = () => {
   const [familyForm] = Form.useForm()
   const [joinForm] = Form.useForm()
   const [babyForm] = Form.useForm()
+  const { user } = useAuthStore()
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null)
 
   useEffect(() => {
     loadFamilies().catch(() => {
       // Error is kept in the store and displayed below.
     })
   }, [loadFamilies])
+
+  const currentUserIsManager = useCallback(() => {
+    if (!currentFamily || !user) return false
+    const me = currentFamily.members.find((m) => m.userId === user.id)
+    return me?.role === 'CREATOR' || me?.role === 'PARENT'
+  }, [currentFamily, user])
+
+  const handleTogglePermission = useCallback(
+    async (member: FamilyMember, field: 'canConfirmPickup' | 'canConfirmNotification', value: boolean) => {
+      if (!currentFamily) return
+      setUpdatingMemberId(member.id)
+      try {
+        await familyAPI.updateMemberPermissions(currentFamily.id, member.id, { [field]: value })
+        message.success('权限更新成功')
+        // 刷新家庭详情以更新成员数据
+        const detail: any = await familyAPI.getFamilyDetail(currentFamily.id)
+        const data = detail?.data ?? detail
+        if (data) {
+          loadFamilies()
+        }
+      } catch (err: any) {
+        message.error(err?.response?.data?.message || err.message || '权限更新失败')
+      } finally {
+        setUpdatingMemberId(null)
+      }
+    },
+    [currentFamily, loadFamilies],
+  )
 
   const handleCreateFamily = async () => {
     const values = await familyForm.validateFields()
@@ -163,6 +198,74 @@ const FamilyManagement: React.FC = () => {
           )}
         </Card>
       </div>
+
+      <Card
+        title={`家庭成员 (${currentFamily?.members.length || 0})`}
+        style={{ marginTop: 16 }}
+      >
+        {!currentFamily ? (
+          <Empty description="请先选择家庭" />
+        ) : (
+          <List
+            dataSource={currentFamily.members}
+            locale={{ emptyText: <Empty description="暂无家庭成员" /> }}
+            renderItem={(member) => {
+              const isManager = currentUserIsManager()
+              const isSelf = member.userId === user?.id
+              return (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={<UserOutlined style={{ color: 'var(--primary-color)', fontSize: 20 }} />}
+                    title={
+                      <Space>
+                        {member.nickname}
+                        {isSelf && <Tag color="blue">我</Tag>}
+                        <Tag>{member.roleDescription || member.role}</Tag>
+                      </Space>
+                    }
+                    description={
+                      isManager && !isSelf ? (
+                        <Space direction="vertical" size={4} style={{ marginTop: 4 }}>
+                          <Space>
+                            <SafetyCertificateOutlined />
+                            <Text type="secondary" style={{ fontSize: 13 }}>接送确认：</Text>
+                            <Switch
+                              size="small"
+                              checked={!!member.canConfirmPickup}
+                              loading={updatingMemberId === member.id}
+                              onChange={(checked) =>
+                                handleTogglePermission(member, 'canConfirmPickup', checked)
+                              }
+                            />
+                          </Space>
+                          <Space>
+                            <SoundOutlined />
+                            <Text type="secondary" style={{ fontSize: 13 }}>通知确认：</Text>
+                            <Switch
+                              size="small"
+                              checked={!!member.canConfirmNotification}
+                              loading={updatingMemberId === member.id}
+                              onChange={(checked) =>
+                                handleTogglePermission(member, 'canConfirmNotification', checked)
+                              }
+                            />
+                          </Space>
+                        </Space>
+                      ) : (
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                          {isSelf ? '自己' : `角色：${member.roleDescription || member.role}`}
+                          {member.canConfirmPickup && ' · 可确认接送'}
+                          {member.canConfirmNotification && ' · 可确认通知'}
+                        </Text>
+                      )
+                    }
+                  />
+                </List.Item>
+              )
+            }}
+          />
+        )}
+      </Card>
 
       <Card title="下一阶段边界" style={{ marginTop: 16 }}>
         <Space direction="vertical" size={12}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Alert, Card, DatePicker, Empty, List, Skeleton, Space, Tag, Timeline, Typography } from 'antd'
+import { Alert, Button, Card, DatePicker, Empty, Input, List, Modal, Select, Skeleton, Space, Tabs, Tag, Timeline, Typography, message } from 'antd'
 import {
   BellOutlined,
   CalendarOutlined,
@@ -9,6 +9,7 @@ import {
   HeartOutlined,
   MedicineBoxOutlined,
   SafetyCertificateOutlined,
+  WalletOutlined,
 } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 import {
@@ -21,13 +22,18 @@ import {
   pickupAPI,
 } from '../../services/api'
 import { useFamilyStore } from '../../stores/familyStore'
+import { parentApplicationAPI } from '../../services/organizationApi'
 import type {
   Announcement,
   AttendanceRecord,
+  BillingStatement,
   CareRecord,
   DailyReport,
   Enrollment,
+  EnrollmentSupplementRequest,
+  EnrollmentSupplementResponse,
   MedicationRequest,
+  MyEnrollment,
   PickupDelegation,
   PickupPerson,
 } from '../../types'
@@ -70,8 +76,67 @@ const ParentReports: React.FC = () => {
   const [medications, setMedications] = useState<MedicationRequest[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [bills, setBills] = useState<BillingStatement[]>([])
+  const [billLoading, setBillLoading] = useState(false)
+  const [billFilter, setBillFilter] = useState<'UNPAID' | undefined>(undefined)
+  const [myEnrollments, setMyEnrollments] = useState<MyEnrollment[]>([])
+  const [bindModalVisible, setBindModalVisible] = useState(false)
+  const [bindCode, setBindCode] = useState('')
+  const [bindRelationship, setBindRelationship] = useState('OTHER')
+  const [submittingBind, setSubmittingBind] = useState(false)
+
+  // T076 资料补充
+  const [supplementModalVisible, setSupplementModalVisible] = useState(false)
+  const [supplementEnrollment, setSupplementEnrollment] = useState<MyEnrollment | null>(null)
+  const [supplementData, setSupplementData] = useState<EnrollmentSupplementResponse | null>(null)
+  const [supplementForm, setSupplementForm] = useState<EnrollmentSupplementRequest>({})
+  const [supplementSubmitting, setSupplementSubmitting] = useState(false)
+  const [supplementActiveTab, setSupplementActiveTab] = useState('baby')
 
   const dateText = useMemo(() => selectedDate.format('YYYY-MM-DD'), [selectedDate])
+
+  // T076 资料补充：打开弹窗
+  const openSupplementModal = (item: MyEnrollment) => {
+    setSupplementEnrollment(item)
+    setSupplementForm({})
+    setSupplementActiveTab('baby')
+    setSupplementModalVisible(true)
+    enrollmentAPI.getSupplementStatus(item.enrollmentId)
+      .then((res: any) => {
+        try {
+          const data = unwrap<EnrollmentSupplementResponse>(res)
+          setSupplementData(data)
+        } catch { /* 静默 */ }
+      })
+      .catch(() => { /* 静默 */ })
+  }
+
+  // T076 资料补充：确认
+  const handleSupplementConfirm = async (enrollmentId: string) => {
+    // 先保存当前填写的内容
+    if (Object.keys(supplementForm).length > 0) {
+      try {
+        const saveRes = await enrollmentAPI.saveSupplement(enrollmentId, supplementForm)
+        unwrap<EnrollmentSupplementResponse>(saveRes)
+      } catch { /* 静默 */ }
+    }
+    setSupplementSubmitting(true)
+    try {
+      const res = await enrollmentAPI.confirmSupplement(enrollmentId)
+      const data = unwrap<EnrollmentSupplementResponse>(res)
+      setSupplementData(data)
+      message.success('资料确认成功')
+      setSupplementModalVisible(false)
+
+      // 刷新我的入托列表
+      const enrollmentsRes = await enrollmentAPI.getMyEnrollments()
+      try { setMyEnrollments(unwrap<MyEnrollment[]>(enrollmentsRes)) } catch { /* 静默 */ }
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '确认失败')
+    } finally {
+      setSupplementSubmitting(false)
+    }
+  }
 
   useEffect(() => {
     loadFamilies().catch(() => {
@@ -117,6 +182,22 @@ const ParentReports: React.FC = () => {
     }
 
     loadParentData()
+
+    // 加载我的入托档案（T070）
+    enrollmentAPI.getMyEnrollments()
+      .then((res) => {
+        try { setMyEnrollments(unwrap<MyEnrollment[]>(res)) } catch { /* 静默 */ }
+      })
+      .catch(() => { /* 静默 */ })
+
+    // 加载账单（T072）
+    setBillLoading(true)
+    parentApplicationAPI.getMyBills()
+      .then((res) => {
+        try { setBills(unwrap<BillingStatement[]>(res)) } catch { /* 静默 */ }
+      })
+      .catch(() => { /* 静默 */ })
+      .finally(() => setBillLoading(false))
   }, [currentBaby, dateText, selectedDate])
 
   if (!currentBaby) {
@@ -143,6 +224,247 @@ const ParentReports: React.FC = () => {
           <DatePicker value={selectedDate} onChange={(value) => value && setSelectedDate(value)} />
         </Space>
       </Card>
+
+      {/* 我的入托档案（T070 + T076 资料补充） */}
+      {myEnrollments.length > 0 && (
+        <Card size="small" style={{ marginBottom: 16 }} title="我的入托档案" extra={
+          <Button size="small" onClick={() => setBindModalVisible(true)}>绑定邀请码</Button>
+        }>
+          <Space wrap size={[8, 8]}>
+            {myEnrollments.map((item) => (
+              <Tag key={item.enrollmentId} color="blue" style={{ padding: '4px 12px', fontSize: 14 }}>
+                {item.babyName} · {item.organizationName} · {item.classroomName}
+              </Tag>
+            ))}
+          </Space>
+          {/* 资料补充入口 */}
+          <div style={{ marginTop: 12, borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+            {myEnrollments.filter(e => e.status === 'PENDING' || e.status === 'HEALTH_CHECK').length > 0 ? (
+              <Space wrap size={[8, 8]}>
+                {myEnrollments.filter(e => e.status === 'PENDING' || e.status === 'HEALTH_CHECK').map((item) => (
+                  <Space key={item.enrollmentId} size={4}>
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      {item.babyName} · {item.statusDescription}
+                    </Text>
+                    {item.parentConfirmed ? (
+                      <Tag color="green" style={{ marginRight: 0 }}>已确认</Tag>
+                    ) : (
+                      <Button size="small" type="primary" ghost
+                        onClick={() => openSupplementModal(item)}>
+                        补资料
+                      </Button>
+                    )}
+                  </Space>
+                ))}
+              </Space>
+            ) : (
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {myEnrollments.every(e => e.parentConfirmed) ? '所有入托档案资料已确认' : '暂无待补充资料的入托档案'}
+              </Text>
+            )}
+          </div>
+        </Card>
+      )}
+      {myEnrollments.length === 0 && (
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Space>
+            <span>暂无入托绑定</span>
+            <Button size="small" onClick={() => setBindModalVisible(true)}>绑定邀请码</Button>
+          </Space>
+        </Card>
+      )}
+
+      {/* ========== 资料补充弹窗（T076） ========== */}
+      <Modal title={supplementEnrollment ? `补充资料 - ${supplementEnrollment.babyName}` : '补充资料'}
+        open={supplementModalVisible} width={640}
+        onCancel={() => { setSupplementModalVisible(false); setSupplementData(null) }}
+        footer={null} destroyOnClose>
+        {supplementEnrollment && supplementData && (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Tabs activeKey={supplementActiveTab} onChange={setSupplementActiveTab}
+              items={[
+                { key: 'baby', label: '宝宝资料', children: (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <div>
+                      <Text strong>{supplementData.babyName}</Text>
+                      <Text type="secondary" style={{ marginLeft: 8 }}>
+                        {supplementData.babyGender === 'MALE' ? '男' : '女'} · {supplementData.babyBirthday}
+                      </Text>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <Text type="secondary">身份证号</Text>
+                        <Input placeholder="宝宝身份证号" maxLength={18}
+                          value={supplementForm.babyIdCard ?? supplementData.babyIdCard ?? ''}
+                          onChange={(e) => setSupplementForm(f => ({ ...f, babyIdCard: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Text type="secondary">出生证编号</Text>
+                        <Input placeholder="出生证编号" maxLength={30}
+                          value={supplementForm.babyBirthCertificateNo ?? supplementData.babyBirthCertificateNo ?? ''}
+                          onChange={(e) => setSupplementForm(f => ({ ...f, babyBirthCertificateNo: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <Button type="primary" ghost onClick={() => setSupplementActiveTab('guardian')}>下一步</Button>
+                    </div>
+                  </Space>
+                )},
+                { key: 'guardian', label: '监护人资料', children: (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <div>
+                      <Text strong>监护人关系：</Text>
+                      <Text>{supplementData.guardianRelationship || '未设置'}</Text>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <Text type="secondary">身份证号</Text>
+                        <Input placeholder="监护人身份证号" maxLength={18}
+                          value={supplementForm.guardianIdCard ?? supplementData.guardianIdCard ?? ''}
+                          onChange={(e) => setSupplementForm(f => ({ ...f, guardianIdCard: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Text type="secondary">职业</Text>
+                        <Input placeholder="监护人职业" maxLength={50}
+                          value={supplementForm.guardianOccupation ?? supplementData.guardianOccupation ?? ''}
+                          onChange={(e) => setSupplementForm(f => ({ ...f, guardianOccupation: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div>
+                      <Text type="secondary">联系电话</Text>
+                      <Input placeholder="监护人电话" maxLength={20}
+                        value={supplementForm.guardianPhone ?? supplementData.guardianPhone ?? ''}
+                        onChange={(e) => setSupplementForm(f => ({ ...f, guardianPhone: e.target.value }))} />
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <Button type="primary" ghost onClick={() => setSupplementActiveTab('health')}>下一步</Button>
+                    </div>
+                  </Space>
+                )},
+                { key: 'health', label: '健康与紧急联系', children: (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <div>
+                      <Text type="secondary">过敏信息</Text>
+                      <Input.TextArea rows={2} placeholder="过敏信息（如有）" maxLength={200}
+                        value={supplementForm.allergyNotes ?? supplementData.allergyNotes ?? ''}
+                        onChange={(e) => setSupplementForm(f => ({ ...f, allergyNotes: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Text type="secondary">健康/病史备注</Text>
+                      <Input.TextArea rows={2} placeholder="健康或病史备注" maxLength={300}
+                        value={supplementForm.medicalNotes ?? supplementData.medicalNotes ?? ''}
+                        onChange={(e) => setSupplementForm(f => ({ ...f, medicalNotes: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Text type="secondary">特殊照护要求</Text>
+                      <Input.TextArea rows={2} placeholder="特殊照护要求" maxLength={300}
+                        value={supplementForm.specialCareNotes ?? supplementData.specialCareNotes ?? ''}
+                        onChange={(e) => setSupplementForm(f => ({ ...f, specialCareNotes: e.target.value }))} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <Text type="secondary">紧急联系人姓名</Text>
+                        <Input placeholder="联系人姓名" maxLength={30}
+                          value={supplementForm.emergencyContactName ?? supplementData.emergencyContactName ?? ''}
+                          onChange={(e) => setSupplementForm(f => ({ ...f, emergencyContactName: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Text type="secondary">紧急联系人电话</Text>
+                        <Input placeholder="联系电话" maxLength={20}
+                          value={supplementForm.emergencyContactPhone ?? supplementData.emergencyContactPhone ?? ''}
+                          onChange={(e) => setSupplementForm(f => ({ ...f, emergencyContactPhone: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <Button type="primary" ghost onClick={() => setSupplementActiveTab('confirm')}>下一步</Button>
+                    </div>
+                  </Space>
+                )},
+                { key: 'confirm', label: '确认提交', children: (
+                  <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                    <Alert type="info" showIcon message="请确认以下资料已完整填写" />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div style={{ padding: 12, border: '1px solid #f0f0f0', borderRadius: 6 }}>
+                        <Text strong>宝宝资料</Text>
+                        <div style={{ marginTop: 8 }}>
+                          <Tag color={supplementData.babyInfoFilled || !!supplementForm.babyIdCard ? 'green' : 'orange'}>
+                            {supplementForm.babyIdCard || supplementData.babyIdCard ? '已填' : '未填'}
+                          </Tag>
+                          {supplementForm.babyIdCard && <div style={{ fontSize: 12, marginTop: 4 }}>身份证: {supplementForm.babyIdCard}</div>}
+                          {supplementForm.babyBirthCertificateNo && <div style={{ fontSize: 12 }}>出生证: {supplementForm.babyBirthCertificateNo}</div>}
+                        </div>
+                      </div>
+                      <div style={{ padding: 12, border: '1px solid #f0f0f0', borderRadius: 6 }}>
+                        <Text strong>监护人资料</Text>
+                        <div style={{ marginTop: 8 }}>
+                          <Tag color={supplementData.guardianInfoFilled || !!supplementForm.guardianIdCard ? 'green' : 'orange'}>
+                            {supplementForm.guardianIdCard || supplementData.guardianIdCard ? '已填' : '未填'}
+                          </Tag>
+                          {supplementForm.guardianIdCard && <div style={{ fontSize: 12, marginTop: 4 }}>身份证: {supplementForm.guardianIdCard}</div>}
+                          {supplementForm.guardianOccupation && <div style={{ fontSize: 12 }}>职业: {supplementForm.guardianOccupation}</div>}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ padding: 12, border: '1px solid #f0f0f0', borderRadius: 6 }}>
+                      <Text strong>健康与紧急联系</Text>
+                      <div style={{ marginTop: 8 }}>
+                        <Tag color={supplementData.healthInfoFilled || !!supplementForm.emergencyContactName ? 'green' : 'orange'}>
+                          {supplementForm.emergencyContactName || supplementData.emergencyContactName ? '已填' : '未填'}
+                        </Tag>
+                        {supplementForm.emergencyContactName && <div style={{ fontSize: 12, marginTop: 4 }}>紧急联系人: {supplementForm.emergencyContactName}</div>}
+                        {supplementForm.emergencyContactPhone && <div style={{ fontSize: 12 }}>电话: {supplementForm.emergencyContactPhone}</div>}
+                      </div>
+                    </div>
+                    <Button type="primary" size="large" block
+                      loading={supplementSubmitting}
+                      disabled={!supplementForm.babyIdCard && !supplementForm.guardianIdCard && !supplementForm.emergencyContactName}
+                      onClick={() => handleSupplementConfirm(supplementEnrollment!.enrollmentId)}>
+                      {supplementData.parentConfirmed ? '已确认' : '确认资料完整'}
+                    </Button>
+                  </Space>
+                )},
+              ]} />
+          </Space>
+        )}
+      </Modal>
+
+      <Modal title="绑定入托档案" open={bindModalVisible}
+        onCancel={() => { setBindModalVisible(false); setBindCode(''); }}
+        onOk={async () => {
+          if (!bindCode.trim()) { message.warning('请输入邀请码'); return }
+          setSubmittingBind(true)
+          try {
+            await enrollmentAPI.bindByInviteCode({
+              inviteCode: bindCode.trim(),
+              relationship: bindRelationship,
+            })
+            message.success('绑定成功')
+            setBindModalVisible(false)
+            setBindCode('')
+            // 刷新
+            const res = await enrollmentAPI.getMyEnrollments()
+            try { setMyEnrollments(unwrap<MyEnrollment[]>(res)) } catch { /* 静默 */ }
+          } catch (err) {
+            message.error(err instanceof Error ? err.message : '绑定失败')
+          } finally {
+            setSubmittingBind(false)
+          }
+        }} confirmLoading={submittingBind} destroyOnClose>
+        <Space direction="vertical" className="full-width" size={12}>
+          <div>
+            <Text type="secondary">从机构获取邀请码后在此绑定</Text>
+          </div>
+          <Input placeholder="输入邀请码" value={bindCode} onChange={(e) => setBindCode(e.target.value)} />
+          <Select value={bindRelationship} onChange={setBindRelationship}
+            options={[
+              { label: '父亲', value: 'FATHER' },
+              { label: '母亲', value: 'MOTHER' },
+              { label: '祖父/外祖父', value: 'GRANDFATHER' },
+              { label: '祖母/外祖母', value: 'GRANDMOTHER' },
+              { label: '其他亲属', value: 'OTHER' },
+            ]} style={{ width: '100%' }} />
+        </Space>
+      </Modal>
 
       {error && <Alert type="warning" showIcon message={error} style={{ marginBottom: 16 }} />}
 
@@ -239,7 +561,37 @@ const ParentReports: React.FC = () => {
               )}
             />
           </Card>
-        </Space>
+          <Card title={<><WalletOutlined /> 我的账单</>} extra={
+            <Button type="link" size="small" onClick={() => setBillFilter(billFilter === 'UNPAID' ? undefined : 'UNPAID')}>
+              {billFilter === 'UNPAID' ? '全部' : '仅看未付'}
+            </Button>
+          }>
+            {billLoading ? <Skeleton active paragraph={{ rows: 3 }} /> : (
+              <List
+                dataSource={billFilter ? bills.filter((b) => b.status === billFilter) : bills}
+                locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={billFilter === 'UNPAID' ? '暂无未付账单' : '暂无账单'} /> }}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={<Space>{item.title}{item.babyName && <Text type="secondary">({item.babyName})</Text>}</Space>}
+                      description={<Space direction="vertical" size={2}>
+                        <Text>¥{item.amount?.toFixed(2)}</Text>
+                        {item.dueDate && <Text type="secondary">到期 {item.dueDate}</Text>}
+                      </Space>}
+                    />
+                    <Space direction="vertical" size={2} style={{ textAlign: 'right' }}>
+                      <Tag color={item.status === 'UNPAID' ? 'volcano' : item.status === 'PAID' ? 'green' : 'default'}>
+                        {item.statusDescription || item.status}
+                      </Tag>
+                      {item.status === 'UNPAID' && (
+                        <Button type="primary" size="small" disabled>支付（待接入）</Button>
+                      )}
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            )}
+          </Card>        </Space>
       </div>
     </div>
   )

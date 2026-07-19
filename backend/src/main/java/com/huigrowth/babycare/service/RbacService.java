@@ -63,7 +63,7 @@ public class RbacService {
         role.setDescription(request.getDescription());
         role.setType(request.getType() != null
                 ? Role.RoleType.valueOf(request.getType()) : Role.RoleType.CUSTOM);
-        role.setSystem(request.getSystem() != null ? request.getSystem() : false);
+        role.setIsSystem(request.getSystem() != null ? request.getSystem() : false);
         role.setStatus(Role.RoleStatus.ACTIVE);
         role = roleRepository.save(role);
         log.info("创建角色: {} ({})", role.getName(), role.getCode());
@@ -74,7 +74,7 @@ public class RbacService {
     public RoleResponse updateRole(Long id, RoleUpdateRequest request) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("角色不存在"));
-        if (role.getSystem()) {
+        if (role.getIsSystem()) {
             throw new BusinessException("系统角色不可修改");
         }
         if (request.getName() != null) role.setName(request.getName());
@@ -90,7 +90,7 @@ public class RbacService {
     public void deleteRole(Long id) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("角色不存在"));
-        if (role.getSystem()) {
+        if (role.getIsSystem()) {
             throw new BusinessException("系统角色不可删除");
         }
         roleMenuRelationRepository.deleteByRoleId(id);

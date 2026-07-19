@@ -38,4 +38,8 @@ public class CareRecordCreateRequest {
 
     @Size(max = 30, message = "数据来源不能超过30个字符")
     private String source;
+
+    /** 补录原因，提供则标记为补录记录 */
+    @Size(max = 300, message = "补录原因不能超过300个字符")
+    private String backfillReason;
 }

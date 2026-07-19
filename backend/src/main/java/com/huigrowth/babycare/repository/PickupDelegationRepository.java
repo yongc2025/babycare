@@ -6,6 +6,7 @@ import com.huigrowth.babycare.entity.PickupDelegation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import com.huigrowth.babycare.entity.User;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -17,4 +18,6 @@ public interface PickupDelegationRepository extends JpaRepository<PickupDelegati
     List<PickupDelegation> findByEnrollmentClassroomAndPickupDateOrderByCreatedAtDesc(
             Classroom classroom,
             LocalDate pickupDate);
+
+    List<PickupDelegation> findByRequestedByOrderByCreatedAtDesc(User requestedBy);
 }
